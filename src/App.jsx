@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 const LAVANDERIAS = ["Lavandería Centro", "Lavandería Norte", "Lavandería Express", "Otra"];
 const ESTADOS = ["En recojo", "Recogido", "En lavandería", "Listo para entregar", "Entregado"];
@@ -37,9 +37,12 @@ function formatDate(date) {
   return new Date(date).toLocaleDateString("es-PE", { day: "2-digit", month: "short" });
 }
 function duracion(ms) {
-  const h = Math.floor(Math.abs(ms) / 3600000);
-  const m = Math.floor((Math.abs(ms) % 3600000) / 60000);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  const totalMin = Math.floor(Math.abs(ms) / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (totalMin < 1) return "1m";
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
 }
 function timeAgo(date) {
   return duracion(Date.now() - new Date(date).getTime());
@@ -50,7 +53,7 @@ function startOfWeek(d) {
 function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 
 const initialForm = { nombre: "", kg: "", notas: "", precio: "", clienteId: "" };
-const initialClienteDir = { nombre: "", celular: "", direccion: "", notasEntrega: "" };
+const initialClienteDir = { nombre: "", celular: "", direccion: "", notasEntrega: "", coordenadas: null, mapsLink: "" };
 const inputStyle = {
   width: "100%", background: "rgba(255,255,255,0.05)",
   border: "0.5px solid rgba(255,255,255,0.1)",
@@ -82,7 +85,26 @@ export default function MCLaundry() {
   const [minutosTemp, setMinutosTemp] = useState("");
   const [periodoReporte, setPeriodoReporte] = useState("semana");
   const [tick, setTick] = useState(0);
+  const [gpsLoading, setGpsLoading] = useState(false);
   const nombreInputRef = useRef(null);
+
+  const capturarUbicacion = () => {
+    if (!navigator.geolocation) return;
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setClienteDir(p => ({
+          ...p,
+          coordenadas: { lat, lng },
+          mapsLink: `https://maps.google.com/?q=${lat},${lng}`
+        }));
+        setGpsLoading(false);
+      },
+      () => setGpsLoading(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   useEffect(() => { try { localStorage.setItem("mc_clientes", JSON.stringify(pedidos)); } catch {} }, [pedidos]);
   useEffect(() => { try { localStorage.setItem("mc_directorio", JSON.stringify(directorio)); } catch {} }, [directorio]);
@@ -93,31 +115,38 @@ export default function MCLaundry() {
     return () => clearInterval(t);
   }, []);
 
-  // Alertas por temporizador vencido
+  // Alertas por temporizador vencido — batched, sin setState en loop
   useEffect(() => {
+    const nuevasAlertas = [];
+    const idsMarcados = [];
     pedidos.forEach(c => {
       if (c.estado === "En lavandería" && c.inicioLavanderia && c.tiempoLavanderia && !c.alertado) {
         const fin = new Date(c.inicioLavanderia).getTime() + c.tiempoLavanderia * 60000;
         if (Date.now() >= fin) {
-          setAlertas(prev => [...prev, { id: c.id, msg: `¡Recoger ropa de ${c.nombre} en ${c.lavanderia}!` }]);
-          setPedidos(prev => prev.map(x => x.id === c.id ? { ...x, alertado: true } : x));
+          nuevasAlertas.push({ id: c.id, msg: `¡Recoger ropa de ${c.nombre} en ${c.lavanderia}!` });
+          idsMarcados.push(c.id);
         }
       }
     });
-  }, [tick, pedidos]);
+    if (nuevasAlertas.length > 0) {
+      setAlertas(prev => [...prev, ...nuevasAlertas]);
+      setPedidos(prev => prev.map(c => idsMarcados.includes(c.id) ? { ...c, alertado: true } : c));
+    }
+  }, [tick]);
 
   // ─── Pedidos ────────────────────────────────────────────────
   const agregarPedido = () => {
     if (!form.nombre || !form.kg) return;
     const cl = directorio.find(d => d.id === parseInt(form.clienteId));
+    const ahora = Date.now();
     const nuevo = {
-      id: Date.now(), ...form,
-      kg: parseFloat(form.kg),
-      precio: form.precio || (parseFloat(form.kg) * 5).toFixed(2),
-      ingreso: new Date().toISOString(),
+      id: crypto.randomUUID(), ...form,
+      kg: Number(form.kg),
+      precio: form.precio || (Number(form.kg) * 5).toFixed(2),
+      ingreso: ahora,
       estado: "En recojo",
       lavanderia: "", alertado: false,
-      historial: [{ estado: "En recojo", fecha: new Date().toISOString() }],
+      historial: [{ estado: "En recojo", fecha: ahora }],
       celularEntrega: cl?.celular || "",
       direccionEntrega: cl?.direccion || "",
       notasEntregaCliente: cl?.notasEntrega || "",
@@ -133,7 +162,7 @@ export default function MCLaundry() {
       if (c.id !== id) return c;
       const nuevoEstado = SIGUIENTE_ESTADO[c.estado];
       if (!nuevoEstado) return c;
-      const ahora = new Date().toISOString();
+      const ahora = Date.now();
       return {
         ...c,
         estado: nuevoEstado,
@@ -156,65 +185,69 @@ export default function MCLaundry() {
     if (clienteDirActivo) {
       setDirectorio(prev => prev.map(d => d.id === clienteDirActivo ? { ...d, ...clienteDir } : d));
     } else {
-      setDirectorio(prev => [{ id: Date.now(), ...clienteDir }, ...prev]);
+      setDirectorio(prev => [{ id: crypto.randomUUID(), ...clienteDir }, ...prev]);
     }
     setClienteDir(initialClienteDir); setClienteDirActivo(null); setVista(null);
   };
   const eliminarClienteDir = (id) => { setDirectorio(prev => prev.filter(d => d.id !== id)); setVista(null); };
   const abrirEditarCliente = (c) => {
-    setClienteDir({ nombre: c.nombre, celular: c.celular || "", direccion: c.direccion || "", notasEntrega: c.notasEntrega || "" });
+    setClienteDir({ nombre: c.nombre, celular: c.celular || "", direccion: c.direccion || "", notasEntrega: c.notasEntrega || "", coordenadas: c.coordenadas || null, mapsLink: c.mapsLink || "" });
     setClienteDirActivo(c.id); setVista("nuevoCliente");
   };
 
-  // ─── Cálculos ───────────────────────────────────────────────
-  const hoy = new Date().toDateString();
+  // ─── Cálculos memorizados ───────────────────────────────────
+  const hoy = useMemo(() => new Date().toDateString(), [tick]);
   const ahora = Date.now();
 
-  const urgentes = pedidos.filter(c => {
+  const urgentes = useMemo(() => pedidos.filter(c => {
     if (c.estado === "En lavandería" && c.inicioLavanderia && c.tiempoLavanderia) {
-      return ahora >= new Date(c.inicioLavanderia).getTime() + c.tiempoLavanderia * 60000;
+      return Date.now() >= new Date(c.inicioLavanderia).getTime() + c.tiempoLavanderia * 60000;
     }
     return false;
-  });
+  }), [pedidos, tick]);
 
-  const stats = {
+  const stats = useMemo(() => ({
     activos: pedidos.filter(c => c.estado !== "Entregado").length,
     listos: pedidos.filter(c => c.estado === "Listo para entregar").length,
     hoy: pedidos.filter(c => new Date(c.ingreso).toDateString() === hoy).length,
-    ingresosHoy: pedidos.filter(c => new Date(c.ingreso).toDateString() === hoy).reduce((s, c) => s + parseFloat(c.precio || 0), 0),
-  };
+    ingresosHoy: pedidos.filter(c => new Date(c.ingreso).toDateString() === hoy).reduce((s, c) => s + Number(c.precio || 0), 0),
+  }), [pedidos, hoy]);
 
-  const grupos = {
+  const grupos = useMemo(() => ({
     activos:    pedidos.filter(c => c.estado !== "Entregado"),
     recojo:     pedidos.filter(c => ["En recojo","Recogido"].includes(c.estado)),
     lavanderia: pedidos.filter(c => c.estado === "En lavandería"),
     listos:     pedidos.filter(c => c.estado === "Listo para entregar"),
     entregados: pedidos.filter(c => c.estado === "Entregado"),
-  };
+  }), [pedidos]);
+
   const pedidosFiltrados = grupos[filtro] || grupos.activos;
 
-  const directorioFiltrado = directorio.filter(d =>
+  const directorioFiltrado = useMemo(() => directorio.filter(d =>
     d.nombre.toLowerCase().includes(busquedaDir.toLowerCase()) ||
     (d.celular || "").includes(busquedaDir) ||
     (d.direccion || "").toLowerCase().includes(busquedaDir.toLowerCase())
-  );
+  ), [directorio, busquedaDir]);
 
-  const sw = startOfWeek(new Date()), sm = startOfMonth(new Date());
-  const pedidosReporte = pedidos.filter(c => {
+  const sw = useMemo(() => startOfWeek(new Date()), [hoy]);
+  const sm = useMemo(() => startOfMonth(new Date()), [hoy]);
+
+  const pedidosReporte = useMemo(() => pedidos.filter(c => {
     const f = new Date(c.ingreso);
     if (periodoReporte === "semana") return f >= sw;
     if (periodoReporte === "mes") return f >= sm;
     return new Date(c.ingreso).toDateString() === hoy;
-  });
-  const reporte = {
+  }), [pedidos, periodoReporte, sw, sm, hoy]);
+
+  const reporte = useMemo(() => ({
     total: pedidosReporte.length,
     entregados: pedidosReporte.filter(c => c.estado === "Entregado").length,
-    ingresos: pedidosReporte.reduce((s, c) => s + parseFloat(c.precio || 0), 0),
-    ganancia: pedidosReporte.reduce((s, c) => s + parseFloat(c.kg || 0) * 1.5, 0),
-    kg: pedidosReporte.reduce((s, c) => s + parseFloat(c.kg || 0), 0),
+    ingresos: pedidosReporte.reduce((s, c) => s + Number(c.precio || 0), 0),
+    ganancia: pedidosReporte.reduce((s, c) => s + Number(c.kg || 0) * 1.5, 0),
+    kg: pedidosReporte.reduce((s, c) => s + Number(c.kg || 0), 0),
     clientesUnicos: [...new Set(pedidosReporte.map(c => c.nombre))].length,
     porEstado: ESTADOS.reduce((acc, e) => { acc[e] = pedidosReporte.filter(c => c.estado === e).length; return acc; }, {}),
-  };
+  }), [pedidosReporte]);
 
   const pedidoDetalle = pedidos.find(c => c.id === pedidoActivo);
   const clienteDirDetalle = directorio.find(d => d.id === clienteDirActivo);
@@ -638,7 +671,22 @@ export default function MCLaundry() {
             <div style={{ background: "rgba(167,139,250,0.06)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
               <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", marginBottom: 10 }}>DATOS DE ENTREGA</div>
               {pedidoDetalle.celularEntrega && <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><span>📱</span><a href={`tel:${pedidoDetalle.celularEntrega}`} style={{ fontSize: 15, color: "#a78bfa", textDecoration: "none", fontWeight: 600 }}>{pedidoDetalle.celularEntrega}</a></div>}
-              {pedidoDetalle.direccionEntrega && <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 6 }}><span>📍</span><div style={{ fontSize: 13 }}>{pedidoDetalle.direccionEntrega}</div></div>}
+              {pedidoDetalle.direccionEntrega && <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+                <span>📍</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13 }}>{pedidoDetalle.direccionEntrega}</div>
+                  {(() => {
+                    const cl = directorio.find(d => d.id === parseInt(pedidoDetalle.clienteId));
+                    const link = cl?.mapsLink || (cl?.coordenadas ? `https://maps.google.com/?q=${cl.coordenadas.lat},${cl.coordenadas.lng}` : null);
+                    return link ? (
+                      <a href={link} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-block", marginTop: 6, background: "#3b82f6", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}>
+                        🗺️ Ir en Maps
+                      </a>
+                    ) : null;
+                  })()}
+                </div>
+              </div>}
               {pedidoDetalle.notasEntregaCliente && <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><span>📝</span><div style={{ fontSize: 13 }}>{pedidoDetalle.notasEntregaCliente}</div></div>}
             </div>
           )}
@@ -664,7 +712,7 @@ export default function MCLaundry() {
               <button onClick={() => {
                 setPedidos(prev => prev.map(c => {
                   if (c.id !== pedidoDetalle.id) return c;
-                  const ahora = new Date().toISOString();
+                  const ahora = Date.now();
                   return {
                     ...c,
                     estado: "En lavandería",
@@ -685,27 +733,27 @@ export default function MCLaundry() {
               {!pedidoDetalle.inicioLavanderia ? (
                 <>
                   <div style={{ fontSize: 13, color: "#3b82f6", fontWeight: 700, marginBottom: 4 }}>🫧 ¿Cuánto tiempo tardan?</div>
-                  <div style={{ fontSize: 11, color: "#555", marginBottom: 10 }}>La lavandería te dijo que estará lista en:</div>
-                  <input type="number" placeholder="Minutos (ej: 90 = 1h 30m)"
+                  <div style={{ fontSize: 11, color: "#555", marginBottom: 10 }}>Ingresa en horas (ej: 1.5 = 1h 30m · 2.25 = 2h 15m)</div>
+                  <input type="number" placeholder="Horas (ej: 1.5)" step="0.25" min="0.25"
                     value={minutosTemp}
                     onChange={e => setMinutosTemp(e.target.value)}
                     style={{ ...inputStyle, marginBottom: 10 }} />
-                  {minutosTemp && parseInt(minutosTemp) > 0 && (
+                  {minutosTemp && parseFloat(minutosTemp) > 0 && (
                     <div style={{ fontSize: 12, color: "#3b82f6", marginBottom: 10, textAlign: "center" }}>
-                      = {duracion(parseInt(minutosTemp) * 60000)}
+                      = {duracion(parseFloat(minutosTemp) * 3600000)}
                     </div>
                   )}
                   <button onClick={() => {
-                    if (!minutosTemp || parseInt(minutosTemp) <= 0) return;
-                    const mins = parseInt(minutosTemp);
+                    if (!minutosTemp || parseFloat(minutosTemp) <= 0) return;
+                    const mins = Math.round(parseFloat(minutosTemp) * 60);
                     setPedidos(prev => prev.map(c => {
                       if (c.id !== pedidoDetalle.id) return c;
-                      return { ...c, tiempoLavanderia: mins, inicioLavanderia: new Date().toISOString() };
+                      return { ...c, tiempoLavanderia: mins, inicioLavanderia: Date.now() };
                     }));
                     setMinutosTemp("");
                   }}
-                    disabled={!minutosTemp || parseInt(minutosTemp) <= 0}
-                    style={{ width: "100%", background: minutosTemp && parseInt(minutosTemp) > 0 ? "#3b82f6" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 10, padding: "14px", cursor: minutosTemp ? "pointer" : "default", color: minutosTemp && parseInt(minutosTemp) > 0 ? "#fff" : "#444", fontSize: 14, fontWeight: 700 }}>
+                    disabled={!minutosTemp || parseFloat(minutosTemp) <= 0}
+                    style={{ width: "100%", background: minutosTemp && parseFloat(minutosTemp) > 0 ? "#3b82f6" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 10, padding: "14px", cursor: minutosTemp ? "pointer" : "default", color: minutosTemp && parseFloat(minutosTemp) > 0 ? "#fff" : "#444", fontSize: 14, fontWeight: 700 }}>
                     ⏱ Iniciar temporizador
                   </button>
                 </>
@@ -717,7 +765,7 @@ export default function MCLaundry() {
                   <>
                     <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, marginBottom: 6 }}>TIEMPO RESTANTE</div>
                     <div style={{ fontSize: 36, fontWeight: 800, color: vencido ? "#ef4444" : "#3b82f6", marginBottom: 4, letterSpacing: -1 }}>
-                      {vencido ? "⚠️ " : "⏱ "}{duracion(restMs)}
+                      {vencido ? "⚠️ " : "⏱ "}{duracion(restMs)} {!vencido && (Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes")}
                     </div>
                     <div style={{ fontSize: 12, color: "#555", marginBottom: 14 }}>
                       {vencido ? "¡Tiempo vencido! Ve a recoger la ropa" : `Listo aprox. a las ${formatTime(new Date(fin))}`}
@@ -792,6 +840,43 @@ export default function MCLaundry() {
                   onChange={e => setClienteDir(p => ({ ...p, [f.key]: e.target.value }))} style={inputStyle} />
               </div>
             ))}
+
+            {/* Ubicación GPS */}
+            <div>
+              <label style={labelStyle}>UBICACIÓN EN MAPS</label>
+              <button onClick={capturarUbicacion} disabled={gpsLoading}
+                style={{ width: "100%", background: clienteDir.coordenadas ? "rgba(16,185,129,0.1)" : "rgba(59,130,246,0.08)", border: `0.5px solid ${clienteDir.coordenadas ? "rgba(16,185,129,0.3)" : "rgba(59,130,246,0.3)"}`, borderRadius: 10, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 20 }}>{gpsLoading ? "⏳" : clienteDir.coordenadas ? "✅" : "📍"}</span>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: clienteDir.coordenadas ? "#10b981" : "#3b82f6" }}>
+                    {gpsLoading ? "Obteniendo ubicación..." : clienteDir.coordenadas ? "Ubicación capturada" : "Marcar ubicación actual"}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#555", marginTop: 1 }}>
+                    {clienteDir.coordenadas ? `${clienteDir.coordenadas.lat.toFixed(5)}, ${clienteDir.coordenadas.lng.toFixed(5)}` : "Toca cuando estés en casa del cliente"}
+                  </div>
+                </div>
+                {clienteDir.coordenadas && (
+                  <div style={{ marginLeft: "auto" }}
+                    onClick={e => { e.stopPropagation(); setClienteDir(p => ({ ...p, coordenadas: null, mapsLink: "" })); }}>
+                    <span style={{ fontSize: 12, color: "#555" }}>✕</span>
+                  </div>
+                )}
+              </button>
+
+              {/* O pegar link manualmente */}
+              <div style={{ fontSize: 11, color: "#555", textAlign: "center", marginBottom: 8 }}>— o pega un link de Google Maps —</div>
+              <input type="url" placeholder="https://maps.google.com/..."
+                value={clienteDir.mapsLink}
+                onChange={e => setClienteDir(p => ({ ...p, mapsLink: e.target.value, coordenadas: null }))}
+                style={{ ...inputStyle, fontSize: 13 }} />
+              {clienteDir.mapsLink ? (
+                <a href={clienteDir.mapsLink} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "block", marginTop: 6, fontSize: 11, color: "#3b82f6", textAlign: "center" }}>
+                  Ver en Maps →
+                </a>
+              ) : null}
+            </div>
+
             <div>
               <label style={labelStyle}>NOTAS DE ENTREGA</label>
               <textarea placeholder="Ej: Tienda en el mercado central, piso 2 puesto 15. Preguntar por don Carlos."
@@ -832,7 +917,22 @@ export default function MCLaundry() {
               {clienteDirDetalle.direccion && (
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>📍</div>
-                  <div><div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>DIRECCIÓN</div><div style={{ fontSize: 13 }}>{clienteDirDetalle.direccion}</div></div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>DIRECCIÓN</div>
+                    <div style={{ fontSize: 13 }}>{clienteDirDetalle.direccion}</div>
+                    {clienteDirDetalle.mapsLink && (
+                      <a href={clienteDirDetalle.mapsLink} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-block", marginTop: 6, background: "#3b82f6", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}>
+                        🗺️ Abrir en Maps
+                      </a>
+                    )}
+                    {!clienteDirDetalle.mapsLink && clienteDirDetalle.coordenadas && (
+                      <a href={`https://maps.google.com/?q=${clienteDirDetalle.coordenadas.lat},${clienteDirDetalle.coordenadas.lng}`} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-block", marginTop: 6, background: "#3b82f6", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}>
+                        🗺️ Abrir en Maps
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
               {clienteDirDetalle.notasEntrega && (
