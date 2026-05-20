@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 
-const LAVANDERIAS = ["Lavandería Centro", "Lavandería Norte", "Lavandería Express", "Otra"];
+const LAVANDERIAS_DEFAULT = ["Lavandería Centro", "Lavandería Norte", "Lavandería Express", "Otra"];
 const ESTADOS = ["En recojo", "Recogido", "En lavandería", "Listo para entregar", "Entregado"];
 const SIGUIENTE_ESTADO = {
   "En recojo": "Recogido",
@@ -25,7 +25,7 @@ const ESTADO_DESC = {
 const ESTADO_ICON = {
   "En recojo":           "🛵",
   "Recogido":            "🧺",
-  "En lavandería":       "🫧",
+  "En lavandería":       "🧼",
   "Listo para entregar": "✅",
   "Entregado":           "📦",
 };
@@ -70,6 +70,11 @@ export default function MCLaundry() {
   const [directorio, setDirectorio] = useState(() => {
     try { return JSON.parse(localStorage.getItem("mc_directorio") || "[]"); } catch { return []; }
   });
+  const [lavanderias, setLavanderias] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("mc_lavanderias") || "null") || LAVANDERIAS_DEFAULT; } catch { return LAVANDERIAS_DEFAULT; }
+  });
+  const [nuevaLavanderia, setNuevaLavanderia] = useState("");
+  const [editandoLav, setEditandoLav] = useState(null); // { idx, nombre }
   const [form, setForm] = useState(initialForm);
   const [clienteDir, setClienteDir] = useState(initialClienteDir);
   const [tab, setTab] = useState("dashboard");
@@ -81,7 +86,9 @@ export default function MCLaundry() {
   const [busquedaDir, setBusquedaDir] = useState("");
   const [sugerencias, setSugerencias] = useState([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
-  const [lavanderiaTemp, setLavanderiaTemp] = useState(LAVANDERIAS[0]);
+  const [lavanderiaTemp, setLavanderiaTemp] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("mc_lavanderias") || "null")?.[0] || LAVANDERIAS_DEFAULT[0]; } catch { return LAVANDERIAS_DEFAULT[0]; }
+  });
   const [minutosTemp, setMinutosTemp] = useState("");
   const [periodoReporte, setPeriodoReporte] = useState("semana");
   const [tick, setTick] = useState(0);
@@ -108,6 +115,7 @@ export default function MCLaundry() {
 
   useEffect(() => { try { localStorage.setItem("mc_clientes", JSON.stringify(pedidos)); } catch {} }, [pedidos]);
   useEffect(() => { try { localStorage.setItem("mc_directorio", JSON.stringify(directorio)); } catch {} }, [directorio]);
+  useEffect(() => { try { localStorage.setItem("mc_lavanderias", JSON.stringify(lavanderias)); } catch {} }, [lavanderias]);
 
   // Tick cada 30s para actualizar temporizadores
   useEffect(() => {
@@ -270,7 +278,7 @@ export default function MCLaundry() {
         <div style={{ padding: "20px 16px 0", borderBottom: "0.5px solid rgba(255,255,255,0.06)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
             <div>
-              <div style={{ fontSize: 10, letterSpacing: 3, color: "#10b981", marginBottom: 2 }}>LAVAGET</div>
+              <div style={{ fontSize: 10, letterSpacing: 3, color: "#10b981", marginBottom: 2 }}>LAVA GO!</div>
               <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>MC Laundry</div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -299,6 +307,7 @@ export default function MCLaundry() {
             {[
               { key: "dashboard", icon: "📋", label: "Pedidos" },
               { key: "directorio", icon: "👥", label: "Clientes" },
+              { key: "lavanderias", icon: "🧼", label: "Lavands." },
               { key: "reportes",   icon: "📊", label: "Reportes" },
             ].map(t => {
               const activo = tab === t.key;
@@ -327,6 +336,7 @@ export default function MCLaundry() {
             {vista === "detalle" && pedidoDetalle?.nombre}
             {vista === "nuevoCliente" && (clienteDirActivo ? "Editar cliente" : "Nuevo cliente")}
             {vista === "detalleCliente" && clienteDirDetalle?.nombre}
+            {vista === "gestionLavanderias" && "Gestionar lavanderías"}
           </div>
         </div>
       )}
@@ -358,7 +368,7 @@ export default function MCLaundry() {
             {[
               { key: "activos",    icon: "🔵", label: "Todos",      count: grupos.activos.length },
               { key: "recojo",     icon: "🛵", label: "Recojo",     count: grupos.recojo.length },
-              { key: "lavanderia", icon: "🫧", label: "Lavandería", count: grupos.lavanderia.length },
+              { key: "lavanderia", icon: "🧼", label: "Lavandería", count: grupos.lavanderia.length },
               { key: "listos",     icon: "✅", label: "Listos",     count: grupos.listos.length },
               { key: "entregados", icon: "📦", label: "Historial",  count: grupos.entregados.length },
             ].map(f => {
@@ -374,7 +384,7 @@ export default function MCLaundry() {
             })}
           </div>
 
-          {pedidosFiltrados.length === 0 ? (
+          {filtro === "lavanderia" ? null : pedidosFiltrados.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 0", color: "#444" }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>👕</div>
               <div style={{ fontSize: 14 }}>Sin pedidos aquí</div>
@@ -383,12 +393,6 @@ export default function MCLaundry() {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {pedidosFiltrados.map(c => {
                 const esUrgente = urgentes.some(u => u.id === c.id);
-                let timerInfo = null;
-                if (c.estado === "En lavandería" && c.inicioLavanderia && c.tiempoLavanderia) {
-                  const fin = new Date(c.inicioLavanderia).getTime() + c.tiempoLavanderia * 60000;
-                  const restMs = fin - ahora;
-                  timerInfo = { vencido: restMs <= 0, texto: duracion(restMs) };
-                }
                 return (
                   <div key={c.id} onClick={() => { setPedidoActivo(c.id); setVista("detalle"); }}
                     style={{ background: esUrgente ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${esUrgente ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
@@ -409,10 +413,8 @@ export default function MCLaundry() {
                           <span style={{ color: "#a78bfa", fontWeight: 600 }}>S/. {c.precio}</span>
                           <span>{timeAgo(c.ingreso)}</span>
                         </div>
-                        {timerInfo && (
-                          <div style={{ fontSize: 11, color: timerInfo.vencido ? "#ef4444" : "#3b82f6", marginTop: 4, fontWeight: 600 }}>
-                            {timerInfo.vencido ? `⚠️ Vencido hace ${timerInfo.texto}` : `⏱ Listo en ${timerInfo.texto}`}
-                          </div>
+                        {c.estado === "Listo para entregar" && c.direccionEntrega && (
+                          <div style={{ marginTop: 5, fontSize: 12, color: "#10b981", fontWeight: 500 }}>📍 {c.direccionEntrega}</div>
                         )}
                       </div>
                       <div style={{ fontSize: 10, letterSpacing: 0.5, fontWeight: 700, color: ESTADO_COLORS[c.estado], background: `${ESTADO_COLORS[c.estado]}15`, padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap", marginLeft: 10, flexShrink: 0 }}>
@@ -668,6 +670,21 @@ export default function MCLaundry() {
               { label: "Lavandería", val: pedidoDetalle.lavanderia || <span style={{ color: "#e879f9" }}>Sin asignar</span> },
               { label: "Kilos", val: `${pedidoDetalle.kg} kg` },
               { label: "Cobrado", val: <span style={{ color: "#a78bfa", fontWeight: 700 }}>S/. {pedidoDetalle.precio}</span> },
+              { label: "Pago", val: (
+                <div style={{ display: "flex", gap: 5 }}>
+                  {["Efectivo","Yape","No pagó"].map(op => {
+                    const activo = (pedidoDetalle.pago || "No pagó") === op;
+                    const color = op === "Efectivo" ? "#10b981" : op === "Yape" ? "#a78bfa" : "#ef4444";
+                    return (
+                      <button key={op}
+                        onClick={e => { e.stopPropagation(); setPedidos(prev => prev.map(c => c.id === pedidoDetalle.id ? { ...c, pago: op } : c)); }}
+                        style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6, border: `1px solid ${activo ? color : "rgba(255,255,255,0.1)"}`, background: activo ? `${color}22` : "transparent", color: activo ? color : "#555", cursor: "pointer" }}>
+                        {op}
+                      </button>
+                    );
+                  })}
+                </div>
+              )},
               { label: "Tu ganancia", val: <span style={{ color: "#10b981" }}>S/. {(pedidoDetalle.kg * 1.5).toFixed(2)}</span> },
               { label: "Inicio", val: `${formatDate(pedidoDetalle.ingreso)} ${formatTime(pedidoDetalle.ingreso)}` },
               ...(pedidoDetalle.fechaFin ? [{ label: "Fin", val: `${formatDate(pedidoDetalle.fechaFin)} ${formatTime(pedidoDetalle.fechaFin)}` }] : []),
@@ -721,84 +738,70 @@ export default function MCLaundry() {
             </button>
           )}
 
-          {/* Paso 2→3: Recogido → elegir lavandería */}
+          {/* Paso 2→3: Recogido → elegir lavandería + tiempo obligatorio */}
           {pedidoDetalle.estado === "Recogido" && (
             <div style={{ background: "rgba(233,121,249,0.08)", border: "1px solid rgba(233,121,249,0.35)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, color: "#e879f9", fontWeight: 700, marginBottom: 10 }}>🧺 ¿A qué lavandería la llevas?</div>
+              <div style={{ fontSize: 13, color: "#e879f9", fontWeight: 700, marginBottom: 10 }}>🧺 ¿A qué lavandería y cuánto tiempo?</div>
+              <label style={labelStyle}>LAVANDERÍA</label>
               <select value={lavanderiaTemp} onChange={e => setLavanderiaTemp(e.target.value)}
                 style={{ ...inputStyle, marginBottom: 10, borderColor: "rgba(233,121,249,0.3)", background: "rgba(233,121,249,0.06)" }}>
-                {LAVANDERIAS.map(l => <option key={l} value={l} style={{ background: "#1a1a2e" }}>{l}</option>)}
+                {lavanderias.map(l => <option key={l} value={l} style={{ background: "#1a1a2e" }}>{l}</option>)}
               </select>
-              <button onClick={() => {
-                setPedidos(prev => prev.map(c => {
-                  if (c.id !== pedidoDetalle.id) return c;
-                  const ahora = Date.now();
-                  return {
-                    ...c,
-                    estado: "En lavandería",
-                    lavanderia: lavanderiaTemp,
-                    historial: [...(c.historial || []), { estado: "En lavandería", fecha: ahora, lavanderia: lavanderiaTemp }]
-                  };
-                }));
-              }}
-                style={{ width: "100%", background: "#3b82f6", border: "none", borderRadius: 10, padding: "14px", cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 16px rgba(59,130,246,0.35)" }}>
-                🫧 Dejar en {lavanderiaTemp}
+              <label style={labelStyle}>TIEMPO EN LAVANDERÍA (horas)</label>
+              <input type="number" placeholder="Ej: 1.5 = 1h 30m" step="0.25" min="0.25"
+                value={minutosTemp}
+                onChange={e => setMinutosTemp(e.target.value)}
+                style={{ ...inputStyle, marginBottom: 6 }} />
+              {minutosTemp && parseFloat(minutosTemp) > 0 && (
+                <div style={{ fontSize: 12, color: "#e879f9", marginBottom: 10, textAlign: "center" }}>
+                  = {duracion(parseFloat(minutosTemp) * 3600000)} · listo aprox. {formatTime(Date.now() + parseFloat(minutosTemp) * 3600000)}
+                </div>
+              )}
+              <button
+                disabled={!minutosTemp || parseFloat(minutosTemp) <= 0}
+                onClick={() => {
+                  if (!minutosTemp || parseFloat(minutosTemp) <= 0) return;
+                  const mins = Math.round(parseFloat(minutosTemp) * 60);
+                  const ahora2 = Date.now();
+                  setPedidos(prev => prev.map(c => {
+                    if (c.id !== pedidoDetalle.id) return c;
+                    return {
+                      ...c,
+                      estado: "En lavandería",
+                      lavanderia: lavanderiaTemp,
+                      tiempoLavanderia: mins,
+                      inicioLavanderia: ahora2,
+                      historial: [...(c.historial || []), { estado: "En lavandería", fecha: ahora2, lavanderia: lavanderiaTemp }]
+                    };
+                  }));
+                  setMinutosTemp("");
+                }}
+                style={{ width: "100%", background: minutosTemp && parseFloat(minutosTemp) > 0 ? "#3b82f6" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 10, padding: "14px", cursor: minutosTemp && parseFloat(minutosTemp) > 0 ? "pointer" : "default", color: minutosTemp && parseFloat(minutosTemp) > 0 ? "#fff" : "#444", fontSize: 14, fontWeight: 700, boxShadow: minutosTemp && parseFloat(minutosTemp) > 0 ? "0 4px 16px rgba(59,130,246,0.35)" : "none" }}>
+                🧼 Dejar en {lavanderiaTemp}
               </button>
             </div>
           )}
-
-          {/* Paso 3: En lavandería → ingresar tiempo o mostrar countdown */}
-          {pedidoDetalle.estado === "En lavandería" && (
-            <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
-              {!pedidoDetalle.inicioLavanderia ? (
-                <>
-                  <div style={{ fontSize: 13, color: "#3b82f6", fontWeight: 700, marginBottom: 4 }}>🫧 ¿Cuánto tiempo tardan?</div>
-                  <div style={{ fontSize: 11, color: "#555", marginBottom: 10 }}>Ingresa en horas (ej: 1.5 = 1h 30m · 2.25 = 2h 15m)</div>
-                  <input type="number" placeholder="Horas (ej: 1.5)" step="0.25" min="0.25"
-                    value={minutosTemp}
-                    onChange={e => setMinutosTemp(e.target.value)}
-                    style={{ ...inputStyle, marginBottom: 10 }} />
-                  {minutosTemp && parseFloat(minutosTemp) > 0 && (
-                    <div style={{ fontSize: 12, color: "#3b82f6", marginBottom: 10, textAlign: "center" }}>
-                      = {duracion(parseFloat(minutosTemp) * 3600000)}
-                    </div>
-                  )}
-                  <button onClick={() => {
-                    if (!minutosTemp || parseFloat(minutosTemp) <= 0) return;
-                    const mins = Math.round(parseFloat(minutosTemp) * 60);
-                    setPedidos(prev => prev.map(c => {
-                      if (c.id !== pedidoDetalle.id) return c;
-                      return { ...c, tiempoLavanderia: mins, inicioLavanderia: Date.now() };
-                    }));
-                    setMinutosTemp("");
-                  }}
-                    disabled={!minutosTemp || parseFloat(minutosTemp) <= 0}
-                    style={{ width: "100%", background: minutosTemp && parseFloat(minutosTemp) > 0 ? "#3b82f6" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 10, padding: "14px", cursor: minutosTemp ? "pointer" : "default", color: minutosTemp && parseFloat(minutosTemp) > 0 ? "#fff" : "#444", fontSize: 14, fontWeight: 700 }}>
-                    ⏱ Iniciar temporizador
-                  </button>
-                </>
-              ) : (() => {
-                const fin = new Date(pedidoDetalle.inicioLavanderia).getTime() + pedidoDetalle.tiempoLavanderia * 60000;
-                const restMs = fin - ahora;
-                const vencido = restMs <= 0;
-                return (
-                  <>
-                    <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, marginBottom: 6 }}>TIEMPO RESTANTE</div>
-                    <div style={{ fontSize: 36, fontWeight: 800, color: vencido ? "#ef4444" : "#3b82f6", marginBottom: 4, letterSpacing: -1 }}>
-                      {vencido ? "⚠️ " : "⏱ "}{duracion(restMs)} {!vencido && (Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes")}
-                    </div>
-                    <div style={{ fontSize: 12, color: "#555", marginBottom: 14 }}>
-                      {vencido ? "¡Tiempo vencido! Ve a recoger la ropa" : `Listo aprox. a las ${formatTime(new Date(fin))}`}
-                    </div>
-                    <button onClick={() => cambiarEstado(pedidoDetalle.id)}
-                      style={{ width: "100%", background: "#10b981", border: "none", borderRadius: 10, padding: "14px", cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 16px rgba(16,185,129,0.35)" }}>
-                      ✅ Recogí la ropa — Lista para entregar
-                    </button>
-                  </>
-                );
-              })()}
-            </div>
-          )}
+          {/* Paso 3: En lavandería → mostrar countdown */}
+          {pedidoDetalle.estado === "En lavandería" && pedidoDetalle.inicioLavanderia && pedidoDetalle.tiempoLavanderia && (() => {
+            const fin = new Date(pedidoDetalle.inicioLavanderia).getTime() + pedidoDetalle.tiempoLavanderia * 60000;
+            const restMs = fin - ahora;
+            const vencido = restMs <= 0;
+            return (
+              <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, marginBottom: 6 }}>TIEMPO RESTANTE</div>
+                <div style={{ fontSize: 36, fontWeight: 800, color: vencido ? "#ef4444" : "#3b82f6", marginBottom: 4, letterSpacing: -1 }}>
+                  {vencido ? "⚠️ " : "⏱ "}{duracion(restMs)} {!vencido && (Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes")}
+                </div>
+                <div style={{ fontSize: 12, color: "#555", marginBottom: 14 }}>
+                  {vencido ? "¡Tiempo vencido! Ve a recoger la ropa" : `Listo aprox. a las ${formatTime(new Date(fin))}`}
+                </div>
+                <button onClick={() => cambiarEstado(pedidoDetalle.id)}
+                  style={{ width: "100%", background: "#10b981", border: "none", borderRadius: 10, padding: "14px", cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 16px rgba(16,185,129,0.35)" }}>
+                  ✅ Recogí la ropa — Lista para entregar
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Paso 4→5: Lista para entregar → Entregado */}
           {pedidoDetalle.estado === "Listo para entregar" && (
@@ -1000,25 +1003,192 @@ export default function MCLaundry() {
         );
       })()}
 
-      {/* ══ FAB ══ */}
-      {!vista && (tab === "dashboard" || tab === "directorio") && (
+      {/* ══ BARRA DE PROGRESO EN LAVANDERÍA ══ */}
+      {!vista && tab === "dashboard" && filtro === "lavanderia" && grupos.lavanderia.length > 0 && (() => {
+        const ahora2 = Date.now();
+        const conTimer = grupos.lavanderia
+          .filter(c => c.inicioLavanderia && c.tiempoLavanderia)
+          .map(c => {
+            const inicio = new Date(c.inicioLavanderia).getTime();
+            const fin = inicio + c.tiempoLavanderia * 60000;
+            const total = fin - inicio;
+            const transcurrido = ahora2 - inicio;
+            const pct = Math.min(100, Math.max(0, (transcurrido / total) * 100));
+            const restMs = fin - ahora2;
+            const listo = restMs <= 0;
+            return { ...c, pct, restMs, listo, fin };
+          })
+          .sort((a, b) => b.pct - a.pct); // primero los que más % tienen (más cerca de terminar)
+        if (conTimer.length === 0) return null;
+        return (
+          <div style={{ margin: "0 16px 12px", background: "rgba(59,130,246,0.06)", border: "0.5px solid rgba(59,130,246,0.2)", borderRadius: 14, padding: "12px 14px" }}>
+            <div style={{ fontSize: 10, letterSpacing: 1, color: "#3b82f6", marginBottom: 10 }}>EN LAVANDERÍA — PROGRESO</div>
+            {conTimer.map(c => (
+              <div key={c.id} onClick={() => { setPedidoActivo(c.id); setVista("detalle"); }}
+                style={{ marginBottom: 10, cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{c.nombre}</div>
+                  <div style={{ fontSize: 11, color: c.listo ? "#10b981" : "#3b82f6", fontWeight: 700 }}>
+                    {c.listo ? "✅ Lista" : `⏱ ${duracion(c.restMs)}`}
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: "#555", marginBottom: 5 }}>{c.lavanderia} · {c.kg} kg</div>
+                <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%",
+                    width: `${c.pct}%`,
+                    background: c.listo ? "#10b981" : `linear-gradient(90deg, #3b82f6, #60a5fa)`,
+                    borderRadius: 4,
+                    transition: "width 1s ease"
+                  }} />
+                </div>
+                <div style={{ fontSize: 10, color: "#444", marginTop: 3, textAlign: "right" }}>{Math.round(c.pct)}%</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ══ LAVANDERÍAS ══ */}
+      {!vista && tab === "lavanderias" && (() => {
+        // Ranking semanal: tiempo promedio por lavandería
+        const sw2 = startOfWeek(new Date());
+        const pedidosSemana = pedidos.filter(c =>
+          c.estado === "Entregado" && c.lavanderia && c.inicioLavanderia && c.fechaFin &&
+          new Date(c.ingreso) >= sw2
+        );
+        const rankingMap = {};
+        pedidosSemana.forEach(c => {
+          const lav = c.lavanderia;
+          if (!rankingMap[lav]) rankingMap[lav] = { total: 0, count: 0 };
+          const mins = (new Date(c.fechaFin).getTime() - new Date(c.inicioLavanderia).getTime()) / 60000;
+          rankingMap[lav].total += mins;
+          rankingMap[lav].count += 1;
+        });
+        const ranking = Object.entries(rankingMap)
+          .map(([lav, d]) => ({ lav, promedio: d.total / d.count, count: d.count }))
+          .sort((a, b) => a.promedio - b.promedio);
+
+        return (
+          <div style={{ padding: "12px 16px 100px" }}>
+            {/* Lista de lavanderías */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 10 }}>MIS LAVANDERÍAS ({lavanderias.length})</div>
+              {lavanderias.map((lav, idx) => (
+                <div key={idx} style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  {editandoLav?.idx === idx ? (
+                    <input
+                      value={editandoLav.nombre}
+                      onChange={e => setEditandoLav(p => ({ ...p, nombre: e.target.value }))}
+                      style={{ ...inputStyle, flex: 1, marginRight: 8 }}
+                      autoFocus
+                    />
+                  ) : (
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>🧼 {lav}</div>
+                  )}
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    {editandoLav?.idx === idx ? (
+                      <>
+                        <button onClick={() => {
+                          if (!editandoLav.nombre.trim()) return;
+                          setLavanderias(prev => prev.map((l, i) => i === idx ? editandoLav.nombre.trim() : l));
+                          setEditandoLav(null);
+                        }} style={{ background: "#10b981", border: "none", borderRadius: 8, padding: "6px 12px", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>✓</button>
+                        <button onClick={() => setEditandoLav(null)} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#888", fontSize: 12, cursor: "pointer" }}>✕</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => setEditandoLav({ idx, nombre: lav })} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#888", fontSize: 13, cursor: "pointer" }}>✏️</button>
+                        <button onClick={() => {
+                          if (lavanderias.length <= 1) return;
+                          setLavanderias(prev => prev.filter((_, i) => i !== idx));
+                        }} style={{ background: "rgba(239,68,68,0.08)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#ef4444", fontSize: 13, cursor: "pointer" }}>🗑️</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Agregar nueva */}
+              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <input
+                  placeholder="Nueva lavandería..."
+                  value={nuevaLavanderia}
+                  onChange={e => setNuevaLavanderia(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && nuevaLavanderia.trim()) {
+                      setLavanderias(prev => [...prev, nuevaLavanderia.trim()]);
+                      setNuevaLavanderia("");
+                    }
+                  }}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button onClick={() => {
+                  if (!nuevaLavanderia.trim()) return;
+                  setLavanderias(prev => [...prev, nuevaLavanderia.trim()]);
+                  setNuevaLavanderia("");
+                }} style={{ background: "#10b981", border: "none", borderRadius: 10, padding: "0 18px", color: "#fff", fontSize: 18, cursor: "pointer", fontWeight: 700, flexShrink: 0 }}>+</button>
+              </div>
+            </div>
+
+            {/* Ranking semanal */}
+            <div>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 10 }}>RANKING ESTA SEMANA — MÁS RÁPIDAS</div>
+              {ranking.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "30px 0", color: "#444", fontSize: 13 }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>🧼</div>
+                  Sin datos esta semana aún
+                </div>
+              ) : ranking.map((r, i) => (
+                <div key={r.lav} style={{ background: i === 0 ? "rgba(16,185,129,0.07)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${i === 0 ? "rgba(16,185,129,0.25)" : "rgba(255,255,255,0.06)"}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontSize: 16 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i+1}.`}</span>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{r.lav}</div>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#555" }}>{r.count} pedido{r.count !== 1 ? "s" : ""} esta semana</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: i === 0 ? "#10b981" : "#a78bfa" }}>{duracion(r.promedio * 60000)}</div>
+                    <div style={{ fontSize: 10, color: "#555" }}>promedio</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ══ GESTIÓN LAVANDERÍAS (vista) ══ */}
+      {vista === "gestionLavanderias" && (
+        <div style={{ padding: "12px 16px 80px" }}>
+          <div style={{ fontSize: 14, color: "#555", textAlign: "center", paddingTop: 40 }}>
+            Usa el tab Lavands. para gestionar tus lavanderías
+          </div>
+        </div>
+      )}
+
+
+      {!vista && (tab === "dashboard" || tab === "directorio" || tab === "lavanderias") && (
         <button
           onClick={() => {
             if (tab === "directorio") { setClienteDir(initialClienteDir); setClienteDirActivo(null); setVista("nuevoCliente"); }
+            else if (tab === "lavanderias") setVista("gestionLavanderias");
             else setVista("nuevo");
           }}
           style={{ position: "fixed", bottom: 88, left: "50%", transform: "translateX(-50%)", background: "#10b981", border: "none", borderRadius: 20, padding: "0 32px", height: 56, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 16, fontWeight: 700, color: "#fff", boxShadow: "0 6px 32px rgba(16,185,129,0.6)", zIndex: 50, whiteSpace: "nowrap" }}>
           <span style={{ fontSize: 22 }}>+</span>
-          {tab === "directorio" ? "Nuevo cliente" : "Nuevo pedido"}
+          {tab === "directorio" ? "Nuevo cliente" : tab === "lavanderias" ? "Gestionar" : "Nuevo pedido"}
         </button>
       )}
 
       {/* ══ BOTTOM NAV ══ */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "rgba(10,10,15,0.97)", borderTop: "0.5px solid rgba(255,255,255,0.08)", display: "flex", zIndex: 40 }}>
         {[
-          { key: "dashboard", icon: "📋", label: "Pedidos", badge: urgentes.length },
-          { key: "directorio", icon: "👥", label: "Clientes", badge: 0 },
-          { key: "reportes",   icon: "📊", label: "Reportes", badge: 0 },
+          { key: "dashboard",   icon: "📋", label: "Pedidos",   badge: urgentes.length },
+          { key: "directorio",  icon: "👥", label: "Clientes",  badge: 0 },
+          { key: "lavanderias", icon: "🧼", label: "Lavands.",  badge: 0 },
+          { key: "reportes",    icon: "📊", label: "Reportes",  badge: 0 },
         ].map(t => {
           const activo = !vista && tab === t.key;
           return (
