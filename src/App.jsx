@@ -25,7 +25,7 @@ const ESTADO_DESC = {
 const ESTADO_ICON = {
   "En recojo":           "🛵",
   "Recogido":            "🧺",
-  "En lavandería":       "🫧",
+  "En lavandería":       "🧼",
   "Listo para entregar": "✅",
   "Entregado":           "📦",
 };
