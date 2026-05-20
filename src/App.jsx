@@ -25,7 +25,7 @@ const ESTADO_DESC = {
 const ESTADO_ICON = {
   "En recojo":           "🛵",
   "Recogido":            "🧺",
-  "En lavanderia":       "🧼",
+  "En lavandería":       "🫧",
   "Listo para entregar": "✅",
   "Entregado":           "📦",
 };
@@ -599,14 +599,28 @@ export default function MCLaundry() {
 
               {form.clienteId && (() => {
                 const cl = directorio.find(d => d.id === parseInt(form.clienteId));
-                return cl ? (
+                if (!cl) return null;
+                const mapsUrl = cl.mapsLink
+                  ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.mapsLink)}&travelmode=motorcycle`
+                  : cl.coordenadas
+                  ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${cl.coordenadas.lat},${cl.coordenadas.lng}&travelmode=motorcycle`
+                  : cl.direccion
+                  ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.direccion + " Pichanaki Peru")}&travelmode=motorcycle`
+                  : null;
+                return (
                   <div style={{ marginTop: 8, background: "rgba(167,139,250,0.08)", border: "0.5px solid rgba(167,139,250,0.25)", borderRadius: 10, padding: "10px 14px" }}>
-                    <div style={{ fontSize: 10, color: "#a78bfa", letterSpacing: 1, marginBottom: 6 }}>CLIENTE VINCULADO ✓</div>
-                    {cl.celular && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 2 }}>📱 {cl.celular}</div>}
-                    {cl.direccion && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 2 }}>📍 {cl.direccion}</div>}
-                    {cl.notasEntrega && <div style={{ fontSize: 11, color: "#888" }}>📝 {cl.notasEntrega}</div>}
+                    <div style={{ fontSize: 10, color: "#a78bfa", letterSpacing: 1, marginBottom: 8 }}>CLIENTE VINCULADO ✓</div>
+                    {cl.celular && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 4 }}>📱 {cl.celular}</div>}
+                    {cl.direccion && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 4 }}>📍 {cl.direccion}</div>}
+                    {cl.notasEntrega && <div style={{ fontSize: 11, color: "#888", marginBottom: 8 }}>📝 {cl.notasEntrega}</div>}
+                    {mapsUrl && (
+                      <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#3b82f6", color: "#fff", fontSize: 13, fontWeight: 700, padding: "10px 14px", borderRadius: 8, textDecoration: "none", marginTop: 4 }}>
+                        🛵 Ir en moto al cliente
+                      </a>
+                    )}
                   </div>
-                ) : null;
+                );
               })()}
             </div>
 
@@ -677,11 +691,17 @@ export default function MCLaundry() {
                   <div style={{ fontSize: 13 }}>{pedidoDetalle.direccionEntrega}</div>
                   {(() => {
                     const cl = directorio.find(d => d.id === parseInt(pedidoDetalle.clienteId));
-                    const link = cl?.mapsLink || (cl?.coordenadas ? `https://maps.google.com/?q=${cl.coordenadas.lat},${cl.coordenadas.lng}` : null);
-                    return link ? (
-                      <a href={link} target="_blank" rel="noopener noreferrer"
-                        style={{ display: "inline-block", marginTop: 6, background: "#3b82f6", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}>
-                        🗺️ Ir en Maps
+                    const mapsUrl = cl?.mapsLink
+                      ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.mapsLink)}&travelmode=motorcycle`
+                      : cl?.coordenadas
+                      ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${cl.coordenadas.lat},${cl.coordenadas.lng}&travelmode=motorcycle`
+                      : pedidoDetalle.direccionEntrega
+                      ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(pedidoDetalle.direccionEntrega + " Pichanaki Peru")}&travelmode=motorcycle`
+                      : null;
+                    return mapsUrl ? (
+                      <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, background: "#3b82f6", color: "#fff", fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>
+                        🛵 Ir en moto al cliente
                       </a>
                     ) : null;
                   })()}
