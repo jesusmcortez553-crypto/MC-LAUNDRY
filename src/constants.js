@@ -39,7 +39,7 @@ export const ESTADO_DESC = {
 export const ESTADO_ICON = {
   "En recojo": "🛵",
   "Recogido": "🪣",
-  "En lavanderia": "🌀",
+  "En lavanderia": "🧼",
   "Listo para entregar": "✅",
   "Entregado": "📦",
 };
