@@ -82,7 +82,7 @@ export default function MCLaundry() {
   const [pedidoActivo, setPedidoActivo] = useState(null);
   const [clienteDirActivo, setClienteDirActivo] = useState(null);
   const [alertas, setAlertas] = useState([]);
-  const [filtro, setFiltro] = useState("activos");
+  const [filtro, setFiltro] = useState("recojo");
   const [busquedaDir, setBusquedaDir] = useState("");
   const [sugerencias, setSugerencias] = useState([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
@@ -366,9 +366,8 @@ export default function MCLaundry() {
       {/* ══ DASHBOARD ══ */}
       {!vista && tab === "dashboard" && (
         <div style={{ padding: "12px 16px 16px" }}>
-          <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 2 }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {[
-              { key: "activos",    icon: "🔵", label: "Todos",      count: grupos.activos.length },
               { key: "recojo",     icon: "🛵", label: "Recojo",     count: grupos.recojo.length },
               { key: "lavanderia", icon: "🧼", label: "Lavandería", count: grupos.lavanderia.length },
               { key: "listos",     icon: "✅", label: "Listos",     count: grupos.listos.length },
