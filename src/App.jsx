@@ -145,7 +145,10 @@ export default function MCLaundry() {
   // ─── Pedidos ────────────────────────────────────────────────
   const agregarPedido = () => {
     if (!form.nombre || !form.kg) return;
-    const cl = directorio.find(d => d.id === parseInt(form.clienteId));
+    const cl = directorio.find(d =>
+      String(d.id) === String(form.clienteId) ||
+      (!form.clienteId && d.nombre.toLowerCase() === form.nombre.toLowerCase())
+    );
     const ahora = Date.now();
     const nuevo = {
       id: crypto.randomUUID(), ...form,
@@ -707,7 +710,7 @@ export default function MCLaundry() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13 }}>{pedidoDetalle.direccionEntrega}</div>
                   {(() => {
-                    const cl = directorio.find(d => d.id === parseInt(pedidoDetalle.clienteId));
+                    const cl = directorio.find(d => String(d.id) === String(pedidoDetalle.clienteId));
                     const mapsUrl = cl?.mapsLink
                       ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.mapsLink)}&travelmode=motorcycle`
                       : cl?.coordenadas
