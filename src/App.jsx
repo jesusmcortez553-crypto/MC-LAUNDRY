@@ -281,8 +281,7 @@ export default function MCLaundry() {
         <div style={{ padding: "20px 16px 0", borderBottom: "0.5px solid rgba(255,255,255,0.06)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
             <div>
-              <div style={{ fontSize: 10, letterSpacing: 3, color: "#10b981", marginBottom: 2 }}>LAVA GO!</div>
-              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>MC Laundry</div>
+              <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: -1, background: "linear-gradient(90deg, #10b981, #a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Lava Go!</div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 10, color: "#555", letterSpacing: 1, marginBottom: 2 }}>HOY COBRADO</div>
