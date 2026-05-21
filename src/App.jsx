@@ -123,6 +123,20 @@ export default function MCLaundry() {
     return () => clearInterval(t);
   }, []);
 
+  // Registrar Service Worker
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
+
+  // Pedir permiso de notificaciones al montar
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // Alertas por temporizador vencido — batched, sin setState en loop
   useEffect(() => {
     const nuevasAlertas = [];
@@ -133,6 +147,19 @@ export default function MCLaundry() {
         if (Date.now() >= fin) {
           nuevasAlertas.push({ id: c.id, msg: `¡Recoger ropa de ${c.nombre} en ${c.lavanderia}!` });
           idsMarcados.push(c.id);
+          // Notificación push nativa
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+              navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification('🧼 Lava Go! — Ropa lista', {
+                  body: `Recoger ropa de ${c.nombre} en ${c.lavanderia}`,
+                  icon: '/android-chrome-192x192.png',
+                  vibrate: [200, 100, 200],
+                  requireInteraction: true
+                });
+              });
+            } catch(e) {}
+          }
         }
       }
     });
