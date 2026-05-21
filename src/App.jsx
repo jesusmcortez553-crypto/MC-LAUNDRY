@@ -711,10 +711,10 @@ export default function MCLaundry() {
                   <div style={{ fontSize: 13 }}>{pedidoDetalle.direccionEntrega}</div>
                   {(() => {
                     const cl = directorio.find(d => String(d.id) === String(pedidoDetalle.clienteId));
-                    const mapsUrl = cl?.mapsLink
-                      ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.mapsLink)}&travelmode=motorcycle`
-                      : cl?.coordenadas
+                    const mapsUrl = cl?.coordenadas
                       ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${cl.coordenadas.lat},${cl.coordenadas.lng}&travelmode=motorcycle`
+                      : cl?.direccion
+                      ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.direccion + " Pichanaki Peru")}&travelmode=motorcycle`
                       : pedidoDetalle.direccionEntrega
                       ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(pedidoDetalle.direccionEntrega + " Pichanaki Peru")}&travelmode=motorcycle`
                       : null;
