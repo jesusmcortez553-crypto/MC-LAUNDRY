@@ -87,6 +87,8 @@ export default function MCLaundry() {
   const [busquedaDir, setBusquedaDir] = useState("");
   const [sugerencias, setSugerencias] = useState([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  const [modal, setModal] = useState(null); // { tipo, titulo, msg, onConfirm }
+  const [costoLavTemp, setCostoLavTemp] = useState("");
   const [lavanderiaTemp, setLavanderiaTemp] = useState(() => {
     try { return JSON.parse(localStorage.getItem("mc_lavanderias") || "null")?.[0] || LAVANDERIAS_DEFAULT[0]; } catch { return LAVANDERIAS_DEFAULT[0]; }
   });
@@ -177,18 +179,21 @@ export default function MCLaundry() {
   };
 
   // Flujo bloqueado: solo avanza al siguiente estado
-  const cambiarEstado = (id, lavanderiaAsignada, minutosLavanderia) => {
+  const cambiarEstado = (id, lavanderiaAsignada, minutosLavanderia, costoLav) => {
     setPedidos(prev => prev.map(c => {
       if (c.id !== id) return c;
       const nuevoEstado = SIGUIENTE_ESTADO[c.estado];
       if (!nuevoEstado) return c;
       const ahora = Date.now();
+      const yaPageo = c.pago === "Efectivo" || c.pago === "Yape";
       return {
         ...c,
         estado: nuevoEstado,
         ...(lavanderiaAsignada ? { lavanderia: lavanderiaAsignada } : {}),
         ...(minutosLavanderia ? { tiempoLavanderia: minutosLavanderia, inicioLavanderia: ahora } : {}),
+        ...(costoLav !== undefined ? { costoLavanderia: costoLav } : {}),
         ...(nuevoEstado === "Entregado" ? { fechaFin: ahora } : {}),
+        ...(nuevoEstado === "Entregado" && yaPageo && !c.fechaPago ? { fechaPago: ahora } : {}),
         historial: [...(c.historial || []), {
           estado: nuevoEstado, fecha: ahora,
           ...(lavanderiaAsignada ? { lavanderia: lavanderiaAsignada } : {})
@@ -230,7 +235,7 @@ export default function MCLaundry() {
     activos: pedidos.filter(c => c.estado !== "Entregado").length,
     listos: pedidos.filter(c => c.estado === "Listo para entregar").length,
     hoy: pedidos.filter(c => new Date(c.ingreso).toDateString() === hoy).length,
-    ingresosHoy: pedidos.filter(c => new Date(c.ingreso).toDateString() === hoy).reduce((s, c) => s + Number(c.precio || 0), 0),
+    ingresosHoy: pedidos.filter(c => c.fechaPago && new Date(c.fechaPago).toDateString() === hoy).reduce((s, c) => s + Number(c.precio || 0), 0),
   }), [pedidos, hoy]);
 
   const grupos = useMemo(() => ({
@@ -259,15 +264,21 @@ export default function MCLaundry() {
     return new Date(c.ingreso).toDateString() === hoy;
   }), [pedidos, periodoReporte, sw, sm, hoy]);
 
-  const reporte = useMemo(() => ({
-    total: pedidosReporte.length,
-    entregados: pedidosReporte.filter(c => c.estado === "Entregado").length,
-    ingresos: pedidosReporte.reduce((s, c) => s + Number(c.precio || 0), 0),
-    ganancia: pedidosReporte.reduce((s, c) => s + Number(c.kg || 0) * 1.5, 0),
-    kg: pedidosReporte.reduce((s, c) => s + Number(c.kg || 0), 0),
-    clientesUnicos: [...new Set(pedidosReporte.map(c => c.nombre))].length,
-    porEstado: ESTADOS.reduce((acc, e) => { acc[e] = pedidosReporte.filter(c => c.estado === e).length; return acc; }, {}),
-  }), [pedidosReporte]);
+  const reporte = useMemo(() => {
+    const cobrados = pedidosReporte.filter(c => c.pago === "Efectivo" || c.pago === "Yape");
+    const porCobrar = pedidos.filter(c => (!c.pago || c.pago === "No pagó") && c.estado !== "Entregado");
+    return {
+      total: pedidosReporte.length,
+      entregados: pedidosReporte.filter(c => c.estado === "Entregado").length,
+      ingresos: cobrados.reduce((s, c) => s + Number(c.precio || 0), 0),
+      ganancia: cobrados.reduce((s, c) => s + (Number(c.precio || 0) - Number(c.costoLavanderia ?? (c.kg * 3.5) || 0)), 0),
+      kg: pedidosReporte.reduce((s, c) => s + Number(c.kg || 0), 0),
+      clientesUnicos: [...new Set(pedidosReporte.map(c => c.nombre))].length,
+      porEstado: ESTADOS.reduce((acc, e) => { acc[e] = pedidosReporte.filter(c => c.estado === e).length; return acc; }, {}),
+      porCobrar: porCobrar.reduce((s, c) => s + Number(c.precio || 0), 0),
+      deudores: porCobrar,
+    };
+  }, [pedidosReporte, pedidos]);
 
   const pedidoDetalle = pedidos.find(c => c.id === pedidoActivo);
   const clienteDirDetalle = directorio.find(d => d.id === clienteDirActivo);
@@ -314,6 +325,26 @@ export default function MCLaundry() {
             ))}
           </div>
 
+          <div style={{ display: "flex" }}>
+            {[
+              { key: "dashboard",   icon: <ClipboardList size={16} />, label: "Pedidos" },
+              { key: "directorio",  icon: <Users size={16} />,         label: "Clientes" },
+              { key: "lavanderias", icon: <WashingMachine size={16} />, label: "Lavands." },
+              { key: "reportes",    icon: <BarChart2 size={16} />,      label: "Reportes" },
+            ].map(t => {
+              const activo = tab === t.key;
+              return (
+                <button key={t.key} onClick={() => setTab(t.key)}
+                  style={{ flex: 1, background: "none", border: "none", borderBottom: activo ? "2px solid #10b981" : "2px solid transparent", padding: "10px 4px", cursor: "pointer", color: activo ? "#10b981" : "#555", fontSize: 12, fontWeight: activo ? 700 : 400, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                  <span style={{ fontSize: 16 }}>{t.icon}</span>
+                  <span>{t.label}</span>
+                  {t.key === "directorio" && directorio.length > 0 && (
+                    <span style={{ fontSize: 9, background: "rgba(167,139,250,0.2)", color: "#a78bfa", padding: "1px 5px", borderRadius: 8 }}>{directorio.length}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -517,6 +548,7 @@ export default function MCLaundry() {
             })}
           </div>
 
+
           {pedidosReporte.length > 0 && (
             <div>
               <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 8 }}>ÚLTIMOS PEDIDOS</div>
@@ -531,6 +563,23 @@ export default function MCLaundry() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#a78bfa" }}>S/. {p.precio}</div>
                     <div style={{ fontSize: 10, color: ESTADO_COLORS[p.estado] }}>{p.estado}</div>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {reporte.deudores.length > 0 && (
+            <div style={{ marginTop: 16, background: "rgba(239,68,68,0.06)", border: "0.5px solid rgba(239,68,68,0.2)", borderRadius: 14, padding: "12px 14px" }}>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: "#ef4444", marginBottom: 4 }}>⚠️ PENDIENTES DE COBRO</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#ef4444", marginBottom: 10 }}>S/. {reporte.porCobrar.toFixed(2)}</div>
+              {reporte.deudores.map(p => (
+                <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
+                  style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "0.5px solid rgba(239,68,68,0.1)", cursor: "pointer" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>{p.nombre}</div>
+                    <div style={{ fontSize: 11, color: "#555" }}>{p.estado}</div>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#ef4444" }}>S/. {p.precio}</div>
                 </div>
               ))}
             </div>
@@ -667,7 +716,21 @@ export default function MCLaundry() {
                     const color = op === "Efectivo" ? "#10b981" : op === "Yape" ? "#a78bfa" : "#ef4444";
                     return (
                       <button key={op}
-                        onClick={e => { e.stopPropagation(); setPedidos(prev => prev.map(c => c.id === pedidoDetalle.id ? { ...c, pago: op } : c)); }}
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (activo) return;
+                          setModal({
+                            titulo: `¿Confirmar pago en ${op}?`,
+                            msg: op !== "No pagó" ? `Se registrará el pago a las ${formatTime(Date.now())}` : "Se marcará como sin pago",
+                            onConfirm: () => {
+                              const ahora = Date.now();
+                              setPedidos(prev => prev.map(c => c.id === pedidoDetalle.id ? {
+                                ...c, pago: op,
+                                ...(op !== "No pagó" ? { fechaPago: ahora } : { fechaPago: null })
+                              } : c));
+                            }
+                          });
+                        }}
                         style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6, border: `1px solid ${activo ? color : "rgba(255,255,255,0.1)"}`, background: activo ? `${color}22` : "transparent", color: activo ? color : "#555", cursor: "pointer" }}>
                         {op}
                       </button>
@@ -675,7 +738,22 @@ export default function MCLaundry() {
                   })}
                 </div>
               )},
-              { label: "Tu ganancia", val: <span style={{ color: "#10b981" }}>S/. {(pedidoDetalle.kg * 1.5).toFixed(2)}</span> },
+              { label: "Costo lav.", val: (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ color: "#ef4444" }}>S/. {(pedidoDetalle.costoLavanderia ?? (pedidoDetalle.kg * 3.5)).toFixed(2)}</span>
+                  <input type="number" step="0.5" placeholder="Editar"
+                    value={costoLavTemp}
+                    onChange={e => setCostoLavTemp(e.target.value)}
+                    onBlur={() => {
+                      if (costoLavTemp) {
+                        setPedidos(prev => prev.map(c => c.id === pedidoDetalle.id ? { ...c, costoLavanderia: parseFloat(costoLavTemp) } : c));
+                        setCostoLavTemp("");
+                      }
+                    }}
+                    style={{ width: 70, background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "2px 6px", color: "#fff", fontSize: 11 }} />
+                </div>
+              )},
+              { label: "Ganancia real", val: <span style={{ color: "#10b981", fontWeight: 700 }}>S/. {(pedidoDetalle.precio - (pedidoDetalle.costoLavanderia ?? (pedidoDetalle.kg * 3.5))).toFixed(2)}</span> },
               { label: "Inicio", val: `${formatDate(pedidoDetalle.ingreso)} ${formatTime(pedidoDetalle.ingreso)}` },
               ...(pedidoDetalle.fechaFin ? [{ label: "Fin", val: `${formatDate(pedidoDetalle.fechaFin)} ${formatTime(pedidoDetalle.fechaFin)}` }] : []),
               ...(pedidoDetalle.notas ? [{ label: "Notas", val: pedidoDetalle.notas }] : []),
@@ -795,7 +873,14 @@ export default function MCLaundry() {
 
           {/* Paso 4→5: Lista para entregar → Entregado */}
           {pedidoDetalle.estado === "Listo para entregar" && (
-            <button onClick={() => cambiarEstado(pedidoDetalle.id)}
+            <button onClick={() => {
+              const noPago = !pedidoDetalle.pago || pedidoDetalle.pago === "No pagó";
+              if (noPago) {
+                setModal({ titulo: "⚠️ Cliente aún no ha pagado", msg: "Registra el pago primero antes de confirmar la entrega.", onConfirm: null });
+              } else {
+                setModal({ titulo: "¿Confirmar entrega al cliente?", msg: "El pedido pasará a estado Entregado.", onConfirm: () => cambiarEstado(pedidoDetalle.id) });
+              }
+            }}
               style={{ width: "100%", background: "#10b981", border: "none", borderRadius: 14, padding: "18px", cursor: "pointer", color: "#fff", fontSize: 15, fontWeight: 700, marginBottom: 12, boxShadow: "0 4px 20px rgba(16,185,129,0.4)" }}>
               📦 Confirmar entrega al cliente
             </button>
@@ -1155,6 +1240,30 @@ export default function MCLaundry() {
       )}
 
 
+      {/* ══ MODAL GLOBAL ══ */}
+      {modal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          onClick={() => setModal(null)}>
+          <div style={{ background: "#1a1a2e", border: "0.5px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 360 }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{modal.titulo}</div>
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>{modal.msg}</div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setModal(null)}
+                style={{ flex: 1, padding: 14, borderRadius: 12, border: "0.5px solid rgba(255,255,255,0.1)", background: "transparent", color: "#888", cursor: "pointer", fontWeight: 600 }}>
+                {modal.onConfirm ? "Cancelar" : "Entendido"}
+              </button>
+              {modal.onConfirm && (
+                <button onClick={() => { modal.onConfirm(); setModal(null); }}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700 }}>
+                  Confirmar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {!vista && (tab === "dashboard" || tab === "directorio" || tab === "lavanderias") && (
         <button
           onClick={() => {
@@ -1171,10 +1280,10 @@ export default function MCLaundry() {
       {/* ══ BOTTOM NAV ══ */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "rgba(10,10,15,0.97)", borderTop: "0.5px solid rgba(255,255,255,0.08)", display: "flex", zIndex: 40 }}>
         {[
-          { key: "dashboard",   icon: <ClipboardList size={26} />, label: "Pedidos",   badge: urgentes.length },
-          { key: "directorio",  icon: <Users size={26} />,          label: "Clientes",  badge: 0 },
-          { key: "lavanderias", icon: <WashingMachine size={26} />, label: "Lavands.",  badge: 0 },
-          { key: "reportes",    icon: <BarChart2 size={26} />,      label: "Reportes",  badge: 0 },
+          { key: "dashboard",   icon: <ClipboardList size={20} />, label: "Pedidos",   badge: urgentes.length },
+          { key: "directorio",  icon: <Users size={20} />,          label: "Clientes",  badge: 0 },
+          { key: "lavanderias", icon: <WashingMachine size={20} />, label: "Lavands.",  badge: 0 },
+          { key: "reportes",    icon: <BarChart2 size={20} />,      label: "Reportes",  badge: 0 },
         ].map(t => {
           const activo = !vista && tab === t.key;
           return (
