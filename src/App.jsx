@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { Bike, ShoppingBasket, WashingMachine, PackageCheck, Package, Phone, MapPin, FileText, Timer, AlertCircle, User, Users, BarChart2, ClipboardList, Plus, Shirt, Map } from "lucide-react";
 
 const LAVANDERIAS_DEFAULT = ["Lavandería Centro", "Lavandería Norte", "Lavandería Express", "Otra"];
 const ESTADOS = ["En recojo", "Recogido", "En lavandería", "Listo para entregar", "Entregado"];
@@ -23,11 +24,11 @@ const ESTADO_DESC = {
   "Entregado":           "Servicio completado",
 };
 const ESTADO_ICON = {
-  "En recojo":           "🛵",
-  "Recogido":            "🧺",
-  "En lavandería":       "🧼",
-  "Listo para entregar": "✅",
-  "Entregado":           "📦",
+  "En recojo":           <Bike size={15} color="#f59e0b" />,
+  "Recogido":            <ShoppingBasket size={15} color="#e879f9" />,
+  "En lavandería":       <WashingMachine size={15} color="#3b82f6" />,
+  "Listo para entregar": <PackageCheck size={15} color="#10b981" />,
+  "Entregado":           <Package size={15} color="#6b7280" />,
 };
 
 function formatTime(date) {
@@ -123,12 +124,6 @@ export default function MCLaundry() {
     return () => clearInterval(t);
   }, []);
 
-  // Registrar Service Worker
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
-  }, []);
 
   // Pedir permiso de notificaciones al montar
   useEffect(() => {
@@ -147,19 +142,6 @@ export default function MCLaundry() {
         if (Date.now() >= fin) {
           nuevasAlertas.push({ id: c.id, msg: `¡Recoger ropa de ${c.nombre} en ${c.lavanderia}!` });
           idsMarcados.push(c.id);
-          // Notificación push nativa
-          if ('Notification' in window && Notification.permission === 'granted') {
-            try {
-              navigator.serviceWorker.ready.then(reg => {
-                reg.showNotification('🧼 Lava Go! — Ropa lista', {
-                  body: `Recoger ropa de ${c.nombre} en ${c.lavanderia}`,
-                  icon: '/android-chrome-192x192.png',
-                  vibrate: [200, 100, 200],
-                  requireInteraction: true
-                });
-              });
-            } catch(e) {}
-          }
         }
       }
     });
@@ -334,10 +316,10 @@ export default function MCLaundry() {
 
           <div style={{ display: "flex" }}>
             {[
-              { key: "dashboard", icon: "📋", label: "Pedidos" },
-              { key: "directorio", icon: "👥", label: "Clientes" },
-              { key: "lavanderias", icon: "🧼", label: "Lavands." },
-              { key: "reportes",   icon: "📊", label: "Reportes" },
+              { key: "dashboard",   icon: <ClipboardList size={16} />, label: "Pedidos" },
+              { key: "directorio",  icon: <Users size={16} />,         label: "Clientes" },
+              { key: "lavanderias", icon: <WashingMachine size={16} />, label: "Lavands." },
+              { key: "reportes",    icon: <BarChart2 size={16} />,      label: "Reportes" },
             ].map(t => {
               const activo = tab === t.key;
               return (
@@ -395,10 +377,10 @@ export default function MCLaundry() {
         <div style={{ padding: "12px 16px 16px" }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {[
-              { key: "recojo",     icon: "🛵", label: "Recojo",     count: grupos.recojo.length },
-              { key: "lavanderia", icon: "🧼", label: "Lavandería", count: grupos.lavanderia.length },
-              { key: "listos",     icon: "✅", label: "Listos",     count: grupos.listos.length },
-              { key: "entregados", icon: "📦", label: "Historial",  count: grupos.entregados.length },
+              { key: "recojo",     icon: <Bike size={13} />,          label: "Recojo",     count: grupos.recojo.length },
+              { key: "lavanderia", icon: <WashingMachine size={13} />, label: "Lavandería", count: grupos.lavanderia.length },
+              { key: "listos",     icon: <PackageCheck size={13} />,   label: "Listos",     count: grupos.listos.length },
+              { key: "entregados", icon: <Package size={13} />,        label: "Historial",  count: grupos.entregados.length },
             ].map(f => {
               const activo = filtro === f.key;
               return (
@@ -414,7 +396,7 @@ export default function MCLaundry() {
 
           {filtro === "lavanderia" ? null : pedidosFiltrados.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 0", color: "#444" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>👕</div>
+              <div style={{ marginBottom: 12, display:"flex", justifyContent:"center" }}><Shirt size={40} color="#444" /></div>
               <div style={{ fontSize: 14 }}>Sin pedidos aquí</div>
             </div>
           ) : (
@@ -434,7 +416,7 @@ export default function MCLaundry() {
                           {c.lavanderia || <span style={{ color: "#e879f9" }}>⚡ Sin lavandería</span>}
                         </div>
                         {c.direccionEntrega && (
-                          <div style={{ fontSize: 11, color: "#a78bfa", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📍 {c.direccionEntrega}</div>
+                          <div style={{ fontSize: 11, color: "#a78bfa", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={11} color="#a78bfa" style={{marginRight:4}} />{c.direccionEntrega}</div>
                         )}
                         <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#666" }}>
                           <span>{c.kg} kg</span>
@@ -442,7 +424,7 @@ export default function MCLaundry() {
                           <span>{timeAgo(c.ingreso)}</span>
                         </div>
                         {c.estado === "Listo para entregar" && c.direccionEntrega && (
-                          <div style={{ marginTop: 5, fontSize: 12, color: "#10b981", fontWeight: 500 }}>📍 {c.direccionEntrega}</div>
+                          <div style={{ marginTop: 5, fontSize: 12, color: "#10b981", fontWeight: 500 }}><MapPin size={11} color="#a78bfa" style={{marginRight:4}} />{c.direccionEntrega}</div>
                         )}
                       </div>
                       <div style={{ fontSize: 10, letterSpacing: 0.5, fontWeight: 700, color: ESTADO_COLORS[c.estado], background: `${ESTADO_COLORS[c.estado]}15`, padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap", marginLeft: 10, flexShrink: 0 }}>
@@ -465,7 +447,7 @@ export default function MCLaundry() {
             style={{ ...inputStyle, marginBottom: 12 }} />
           {directorioFiltrado.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 0", color: "#444" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>👤</div>
+              <div style={{ marginBottom: 12, display:"flex", justifyContent:"center" }}><User size={40} color="#444" /></div>
               <div style={{ fontSize: 14 }}>{directorio.length === 0 ? "Sin clientes aún" : "Sin resultados"}</div>
             </div>
           ) : (
@@ -482,8 +464,8 @@ export default function MCLaundry() {
                           <div style={{ fontSize: 15, fontWeight: 600 }}>{d.nombre}</div>
                           {activos > 0 && <span style={{ fontSize: 10, background: "rgba(16,185,129,0.2)", color: "#10b981", padding: "2px 7px", borderRadius: 6, fontWeight: 700 }}>{activos} activo{activos > 1 ? "s" : ""}</span>}
                         </div>
-                        {d.celular && <div style={{ fontSize: 12, color: "#a78bfa", marginBottom: 2 }}>📱 {d.celular}</div>}
-                        {d.direccion && <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📍 {d.direccion}</div>}
+                        {d.celular && <div style={{ fontSize: 12, color: "#a78bfa", marginBottom: 2 }}><Phone size={12} color="#a78bfa" style={{marginRight:4}} />{d.celular}</div>}
+                        {d.direccion && <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={12} color="#555" style={{marginRight:4}} />{d.direccion}</div>}
                       </div>
                       <div style={{ fontSize: 11, color: "#444", marginLeft: 8, flexShrink: 0 }}>{total} pedido{total !== 1 ? "s" : ""}</div>
                     </div>
@@ -614,7 +596,7 @@ export default function MCLaundry() {
                         style={{ padding: "10px 14px", cursor: "pointer", borderBottom: i < sugerencias.length - 1 ? "0.5px solid rgba(255,255,255,0.04)" : "none", display: "flex", alignItems: "center", gap: 10 }}
                         onMouseEnter={e => e.currentTarget.style.background = "rgba(167,139,250,0.1)"}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>👤</div>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><User size={14} color="#a78bfa" /></div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 14, fontWeight: 600, color: "#e8e4dc" }}>
                             {idx === -1 ? n : <>{n.slice(0,idx)}<span style={{ color: "#a78bfa", background: "rgba(167,139,250,0.15)", borderRadius: 3, padding: "0 1px" }}>{n.slice(idx, idx+q.length)}</span>{n.slice(idx+q.length)}</>}
@@ -640,13 +622,13 @@ export default function MCLaundry() {
                 return (
                   <div style={{ marginTop: 8, background: "rgba(167,139,250,0.08)", border: "0.5px solid rgba(167,139,250,0.25)", borderRadius: 10, padding: "10px 14px" }}>
                     <div style={{ fontSize: 10, color: "#a78bfa", letterSpacing: 1, marginBottom: 8 }}>CLIENTE VINCULADO ✓</div>
-                    {cl.celular && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 4 }}>📱 {cl.celular}</div>}
-                    {cl.direccion && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 4 }}>📍 {cl.direccion}</div>}
-                    {cl.notasEntrega && <div style={{ fontSize: 11, color: "#888", marginBottom: 8 }}>📝 {cl.notasEntrega}</div>}
+                    {cl.celular && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 4 }}><Phone size={12} color="#c4b5fd" style={{marginRight:4}} />{cl.celular}</div>}
+                    {cl.direccion && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 4 }}><MapPin size={12} color="#c4b5fd" style={{marginRight:4}} />{cl.direccion}</div>}
+                    {cl.notasEntrega && <div style={{ fontSize: 11, color: "#888", marginBottom: 8 }}><FileText size={12} color="#888" style={{marginRight:4}} />{cl.notasEntrega}</div>}
                     {mapsUrl && (
                       <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
                         style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#3b82f6", color: "#fff", fontSize: 13, fontWeight: 700, padding: "10px 14px", borderRadius: 8, textDecoration: "none", marginTop: 4 }}>
-                        🛵 Ir en moto al cliente
+                        🗺 Ir en moto al cliente
                       </a>
                     )}
                   </div>
@@ -729,9 +711,9 @@ export default function MCLaundry() {
           {(pedidoDetalle.celularEntrega || pedidoDetalle.direccionEntrega || pedidoDetalle.notasEntregaCliente) && (
             <div style={{ background: "rgba(167,139,250,0.06)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
               <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", marginBottom: 10 }}>DATOS DE ENTREGA</div>
-              {pedidoDetalle.celularEntrega && <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><span>📱</span><a href={`tel:${pedidoDetalle.celularEntrega}`} style={{ fontSize: 15, color: "#a78bfa", textDecoration: "none", fontWeight: 600 }}>{pedidoDetalle.celularEntrega}</a></div>}
+              {pedidoDetalle.celularEntrega && <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><Phone size={14} color="#a78bfa" style={{flexShrink:0}} /><a href={`tel:${pedidoDetalle.celularEntrega}`} style={{ fontSize: 15, color: "#a78bfa", textDecoration: "none", fontWeight: 600 }}>{pedidoDetalle.celularEntrega}</a></div>}
               {pedidoDetalle.direccionEntrega && <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
-                <span>📍</span>
+                <MapPin size={14} color="#a78bfa" style={{flexShrink:0}} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13 }}>{pedidoDetalle.direccionEntrega}</div>
                   {(() => {
@@ -746,13 +728,13 @@ export default function MCLaundry() {
                     return mapsUrl ? (
                       <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
                         style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, background: "#3b82f6", color: "#fff", fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}>
-                        🛵 Ir en moto al cliente
+                        🗺 Ir en moto al cliente
                       </a>
                     ) : null;
                   })()}
                 </div>
               </div>}
-              {pedidoDetalle.notasEntregaCliente && <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><span>📝</span><div style={{ fontSize: 13 }}>{pedidoDetalle.notasEntregaCliente}</div></div>}
+              {pedidoDetalle.notasEntregaCliente && <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><FileText size={14} color="#555" style={{flexShrink:0}} /><div style={{ fontSize: 13 }}>{pedidoDetalle.notasEntregaCliente}</div></div>}
             </div>
           )}
 
@@ -818,7 +800,7 @@ export default function MCLaundry() {
               <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
                 <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, marginBottom: 6 }}>TIEMPO RESTANTE</div>
                 <div style={{ fontSize: 36, fontWeight: 800, color: vencido ? "#ef4444" : "#3b82f6", marginBottom: 4, letterSpacing: -1 }}>
-                  {vencido ? "⚠️ " : "⏱ "}{duracion(restMs)} {!vencido && (Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes")}
+                  {vencido ? <AlertCircle size={28} color="#ef4444" style={{display:"inline",verticalAlign:"middle",marginRight:6}} /> : <Timer size={28} color="#3b82f6" style={{display:"inline",verticalAlign:"middle",marginRight:6}} />}{duracion(restMs)} {!vencido && (Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes")}
                 </div>
                 <div style={{ fontSize: 12, color: "#555", marginBottom: 14 }}>
                   {vencido ? "¡Tiempo vencido! Ve a recoger la ropa" : `Listo aprox. a las ${formatTime(new Date(fin))}`}
@@ -897,7 +879,7 @@ export default function MCLaundry() {
               <label style={labelStyle}>UBICACIÓN EN MAPS</label>
               <button onClick={capturarUbicacion} disabled={gpsLoading}
                 style={{ width: "100%", background: clienteDir.coordenadas ? "rgba(16,185,129,0.1)" : "rgba(59,130,246,0.08)", border: `0.5px solid ${clienteDir.coordenadas ? "rgba(16,185,129,0.3)" : "rgba(59,130,246,0.3)"}`, borderRadius: 10, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <span style={{ fontSize: 20 }}>{gpsLoading ? "⏳" : clienteDir.coordenadas ? "✅" : "📍"}</span>
+                <span style={{ fontSize: 20 }}>{gpsLoading ? <Timer size={20} color="#3b82f6" /> : clienteDir.coordenadas ? <PackageCheck size={20} color="#10b981" /> : <MapPin size={20} color="#3b82f6" />}</span>
                 <div style={{ textAlign: "left" }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: clienteDir.coordenadas ? "#10b981" : "#3b82f6" }}>
                     {gpsLoading ? "Obteniendo ubicación..." : clienteDir.coordenadas ? "Ubicación capturada" : "Marcar ubicación actual"}
@@ -958,7 +940,7 @@ export default function MCLaundry() {
               <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", marginBottom: 12 }}>DATOS DE CONTACTO</div>
               {clienteDirDetalle.celular ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📱</div>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}><Phone size={18} color="#a78bfa" /></div>
                   <div>
                     <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>CELULAR</div>
                     <a href={`tel:${clienteDirDetalle.celular}`} style={{ fontSize: 16, color: "#a78bfa", textDecoration: "none", fontWeight: 700 }}>{clienteDirDetalle.celular}</a>
@@ -967,20 +949,20 @@ export default function MCLaundry() {
               ) : <div style={{ fontSize: 12, color: "#444", marginBottom: 10 }}>Sin celular</div>}
               {clienteDirDetalle.direccion && (
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>📍</div>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><MapPin size={18} color="#a78bfa" /></div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>DIRECCIÓN</div>
                     <div style={{ fontSize: 13 }}>{clienteDirDetalle.direccion}</div>
                     {clienteDirDetalle.mapsLink && (
                       <a href={clienteDirDetalle.mapsLink} target="_blank" rel="noopener noreferrer"
                         style={{ display: "inline-block", marginTop: 6, background: "#3b82f6", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}>
-                        🗺️ Abrir en Maps
+                        🗺 Abrir en Maps
                       </a>
                     )}
                     {!clienteDirDetalle.mapsLink && clienteDirDetalle.coordenadas && (
                       <a href={`https://maps.google.com/?q=${clienteDirDetalle.coordenadas.lat},${clienteDirDetalle.coordenadas.lng}`} target="_blank" rel="noopener noreferrer"
                         style={{ display: "inline-block", marginTop: 6, background: "#3b82f6", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}>
-                        🗺️ Abrir en Maps
+                        🗺 Abrir en Maps
                       </a>
                     )}
                   </div>
@@ -988,7 +970,7 @@ export default function MCLaundry() {
               )}
               {clienteDirDetalle.notasEntrega && (
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>📝</div>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><FileText size={18} color="#888" /></div>
                   <div><div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>INSTRUCCIONES</div><div style={{ fontSize: 13, lineHeight: 1.5 }}>{clienteDirDetalle.notasEntrega}</div></div>
                 </div>
               )}
@@ -1057,7 +1039,7 @@ export default function MCLaundry() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{c.nombre}</div>
                   <div style={{ fontSize: 11, color: c.listo ? "#10b981" : "#3b82f6", fontWeight: 700 }}>
-                    {c.listo ? "✅ Lista" : `⏱ ${duracion(c.restMs)}`}
+                    {c.listo ? <><PackageCheck size={12} style={{display:"inline",verticalAlign:"middle",marginRight:3}} />Lista</> : <><Timer size={12} style={{display:"inline",verticalAlign:"middle",marginRight:3}} />{duracion(c.restMs)}</>}
                   </div>
                 </div>
                 <div style={{ fontSize: 11, color: "#555", marginBottom: 5 }}>{c.lavanderia} · {c.kg} kg</div>
@@ -1112,7 +1094,7 @@ export default function MCLaundry() {
                       autoFocus
                     />
                   ) : (
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>🧼 {lav}</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, display:"flex", alignItems:"center", gap:6 }}><WashingMachine size={14} color="#3b82f6" />{lav}</div>
                   )}
                   <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                     {editandoLav?.idx === idx ? (
@@ -1127,10 +1109,6 @@ export default function MCLaundry() {
                     ) : (
                       <>
                         <button onClick={() => setEditandoLav({ idx, nombre: lav })} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#888", fontSize: 13, cursor: "pointer" }}>✏️</button>
-                        <button onClick={() => {
-                          if (lavanderias.length <= 1) return;
-                          setLavanderias(prev => prev.filter((_, i) => i !== idx));
-                        }} style={{ background: "rgba(239,68,68,0.08)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#ef4444", fontSize: 13, cursor: "pointer" }}>🗑️</button>
                       </>
                     )}
                   </div>
@@ -1164,7 +1142,7 @@ export default function MCLaundry() {
               <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 10 }}>RANKING ESTA SEMANA — MÁS RÁPIDAS</div>
               {ranking.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "30px 0", color: "#444", fontSize: 13 }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>🧼</div>
+                  <div style={{ marginBottom: 8, display:"flex", justifyContent:"center" }}><WashingMachine size={32} color="#444" /></div>
                   Sin datos esta semana aún
                 </div>
               ) : ranking.map((r, i) => (
@@ -1213,10 +1191,10 @@ export default function MCLaundry() {
       {/* ══ BOTTOM NAV ══ */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "rgba(10,10,15,0.97)", borderTop: "0.5px solid rgba(255,255,255,0.08)", display: "flex", zIndex: 40 }}>
         {[
-          { key: "dashboard",   icon: "📋", label: "Pedidos",   badge: urgentes.length },
-          { key: "directorio",  icon: "👥", label: "Clientes",  badge: 0 },
-          { key: "lavanderias", icon: "🧼", label: "Lavands.",  badge: 0 },
-          { key: "reportes",    icon: "📊", label: "Reportes",  badge: 0 },
+          { key: "dashboard",   icon: <ClipboardList size={20} />, label: "Pedidos",   badge: urgentes.length },
+          { key: "directorio",  icon: <Users size={20} />,          label: "Clientes",  badge: 0 },
+          { key: "lavanderias", icon: <WashingMachine size={20} />, label: "Lavands.",  badge: 0 },
+          { key: "reportes",    icon: <BarChart2 size={20} />,      label: "Reportes",  badge: 0 },
         ].map(t => {
           const activo = !vista && tab === t.key;
           return (
