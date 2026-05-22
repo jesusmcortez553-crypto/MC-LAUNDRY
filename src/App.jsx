@@ -271,7 +271,7 @@ export default function MCLaundry() {
       total: pedidosReporte.length,
       entregados: pedidosReporte.filter(c => c.estado === "Entregado").length,
       ingresos: cobrados.reduce((s, c) => s + Number(c.precio || 0), 0),
-      ganancia: cobrados.reduce((s, c) => s + (Number(c.precio || 0) - Number(c.costoLavanderia ?? (c.kg * 3.5) || 0)), 0),
+      ganancia: cobrados.reduce((s, c) => s + (Number(c.precio || 0) - (c.costoLavanderia != null ? c.costoLavanderia : c.kg * 3.5)), 0),
       kg: pedidosReporte.reduce((s, c) => s + Number(c.kg || 0), 0),
       clientesUnicos: [...new Set(pedidosReporte.map(c => c.nombre))].length,
       porEstado: ESTADOS.reduce((acc, e) => { acc[e] = pedidosReporte.filter(c => c.estado === e).length; return acc; }, {}),
