@@ -314,26 +314,6 @@ export default function MCLaundry() {
             ))}
           </div>
 
-          <div style={{ display: "flex" }}>
-            {[
-              { key: "dashboard",   icon: <ClipboardList size={16} />, label: "Pedidos" },
-              { key: "directorio",  icon: <Users size={16} />,         label: "Clientes" },
-              { key: "lavanderias", icon: <WashingMachine size={16} />, label: "Lavands." },
-              { key: "reportes",    icon: <BarChart2 size={16} />,      label: "Reportes" },
-            ].map(t => {
-              const activo = tab === t.key;
-              return (
-                <button key={t.key} onClick={() => setTab(t.key)}
-                  style={{ flex: 1, background: "none", border: "none", borderBottom: activo ? "2px solid #10b981" : "2px solid transparent", padding: "10px 4px", cursor: "pointer", color: activo ? "#10b981" : "#555", fontSize: 12, fontWeight: activo ? 700 : 400, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                  <span style={{ fontSize: 16 }}>{t.icon}</span>
-                  <span>{t.label}</span>
-                  {t.key === "directorio" && directorio.length > 0 && (
-                    <span style={{ fontSize: 9, background: "rgba(167,139,250,0.2)", color: "#a78bfa", padding: "1px 5px", borderRadius: 8 }}>{directorio.length}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
         </div>
       )}
 
@@ -1191,10 +1171,10 @@ export default function MCLaundry() {
       {/* ══ BOTTOM NAV ══ */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "rgba(10,10,15,0.97)", borderTop: "0.5px solid rgba(255,255,255,0.08)", display: "flex", zIndex: 40 }}>
         {[
-          { key: "dashboard",   icon: <ClipboardList size={20} />, label: "Pedidos",   badge: urgentes.length },
-          { key: "directorio",  icon: <Users size={20} />,          label: "Clientes",  badge: 0 },
-          { key: "lavanderias", icon: <WashingMachine size={20} />, label: "Lavands.",  badge: 0 },
-          { key: "reportes",    icon: <BarChart2 size={20} />,      label: "Reportes",  badge: 0 },
+          { key: "dashboard",   icon: <ClipboardList size={26} />, label: "Pedidos",   badge: urgentes.length },
+          { key: "directorio",  icon: <Users size={26} />,          label: "Clientes",  badge: 0 },
+          { key: "lavanderias", icon: <WashingMachine size={26} />, label: "Lavands.",  badge: 0 },
+          { key: "reportes",    icon: <BarChart2 size={26} />,      label: "Reportes",  badge: 0 },
         ].map(t => {
           const activo = !vista && tab === t.key;
           return (
