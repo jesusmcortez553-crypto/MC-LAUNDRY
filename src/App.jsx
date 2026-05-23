@@ -471,6 +471,8 @@ export default function MCLaundry() {
       {/* ══ REPORTES ══ */}
       {!vista && tab === "reportes" && (
         <div style={{ padding: "12px 16px 16px" }}>
+
+          {/* Selector período */}
           <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
             {[{ key: "hoy", label: "Hoy" }, { key: "semana", label: "Esta semana" }, { key: "mes", label: "Este mes" }].map(p => (
               <button key={p.key} onClick={() => setPeriodoReporte(p.key)}
@@ -480,90 +482,86 @@ export default function MCLaundry() {
             ))}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-            <div style={{ background: "rgba(167,139,250,0.08)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "16px 14px" }}>
-              <div style={{ fontSize: 10, color: "#a78bfa", letterSpacing: 1, marginBottom: 6 }}>COBRADO</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#a78bfa", letterSpacing: -1 }}>S/. {reporte.ingresos.toFixed(2)}</div>
-              <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{reporte.total} pedido{reporte.total !== 1 ? "s" : ""}</div>
-            </div>
-            <div style={{ background: "rgba(16,185,129,0.08)", border: "0.5px solid rgba(16,185,129,0.2)", borderRadius: 14, padding: "16px 14px" }}>
-              <div style={{ fontSize: 10, color: "#10b981", letterSpacing: 1, marginBottom: 6 }}>TU GANANCIA</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#10b981", letterSpacing: -1 }}>S/. {reporte.ganancia.toFixed(2)}</div>
-              <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{reporte.kg.toFixed(1)} kg lavados</div>
-            </div>
+          {/* GANANCIA — protagonista full width */}
+          <div style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.06))", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 16, padding: "20px 18px", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, color: "#10b981", letterSpacing: 1.5, marginBottom: 6 }}>TU GANANCIA</div>
+            <div style={{ fontSize: 44, fontWeight: 900, color: "#10b981", letterSpacing: -2, lineHeight: 1 }}>S/. {reporte.ganancia.toFixed(2)}</div>
+            <div style={{ fontSize: 12, color: "#555", marginTop: 8 }}>{reporte.kg.toFixed(1)} kg lavados · {reporte.entregados} entregado{reporte.entregados !== 1 ? "s" : ""}</div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
-            {[
-              { label: "Entregados", val: reporte.entregados, color: "#6b7280" },
-              { label: "Clientes únicos", val: reporte.clientesUnicos, color: "#f59e0b" },
-              { label: "Kg promedio", val: reporte.total > 0 ? (reporte.kg / reporte.total).toFixed(1) : "0", color: "#3b82f6" },
-            ].map((s, i) => (
-              <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: `0.5px solid ${s.color}22`, borderRadius: 10, padding: "12px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val}</div>
-                <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>{s.label}</div>
+          {/* COBRADO — secundario */}
+          <div style={{ background: "rgba(167,139,250,0.07)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "14px 16px", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, color: "#a78bfa", letterSpacing: 1, marginBottom: 4 }}>COBRADO</div>
+            <div style={{ fontSize: 30, fontWeight: 800, color: "#a78bfa", letterSpacing: -1 }}>S/. {reporte.ingresos.toFixed(2)}</div>
+            <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{reporte.total} pedido{reporte.total !== 1 ? "s" : ""}</div>
+          </div>
+
+          {/* POR COBRAR — arriba, visible siempre */}
+          {reporte.deudores.length > 0 && (
+            <div style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 14, padding: "14px 16px", marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontSize: 10, letterSpacing: 1, color: "#ef4444" }}>⚠️ POR COBRAR</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: "#ef4444", letterSpacing: -1 }}>S/. {reporte.porCobrar.toFixed(2)}</div>
               </div>
-            ))}
-          </div>
+              {reporte.deudores.map((p, i) => (
+                <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderTop: i === 0 ? "0.5px solid rgba(239,68,68,0.15)" : "0.5px solid rgba(239,68,68,0.1)", cursor: "pointer" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{p.nombre}</div>
+                    <div style={{ fontSize: 11, color: "#666" }}>{p.estado}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#ef4444" }}>S/. {p.precio}</div>
+                    <span style={{ fontSize: 14, color: "#ef4444" }}>→</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-          <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden", marginBottom: 16 }}>
-            <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", padding: "12px 14px 8px" }}>POR ESTADO</div>
+          {/* POR ESTADO — barras más gruesas */}
+          <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, letterSpacing: 1, color: "#555", padding: "12px 14px 6px" }}>POR ESTADO</div>
             {ESTADOS.map((e, i) => {
               const n = reporte.porEstado[e] || 0;
               const pct = reporte.total > 0 ? (n / reporte.total) * 100 : 0;
               return (
-                <div key={e} style={{ padding: "8px 14px", borderTop: i === 0 ? "none" : "0.5px solid rgba(255,255,255,0.04)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <div key={e} style={{ padding: "7px 14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 13 }}>{ESTADO_ICON[e]}</span>
+                      <span>{ESTADO_ICON[e]}</span>
                       <span style={{ fontSize: 12, color: "#888" }}>{e}</span>
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: ESTADO_COLORS[e] }}>{n}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: ESTADO_COLORS[e] }}>{n}</span>
                   </div>
-                  <div style={{ height: 3, background: "rgba(255,255,255,0.05)", borderRadius: 2 }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: ESTADO_COLORS[e], borderRadius: 2 }} />
+                  <div style={{ height: 7, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: ESTADO_COLORS[e], borderRadius: 4 }} />
                   </div>
                 </div>
               );
             })}
           </div>
 
-
+          {/* ÚLTIMOS PEDIDOS — nombre + precio + estado */}
           {pedidosReporte.length > 0 && (
-            <div>
-              <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 8 }}>ÚLTIMOS PEDIDOS</div>
-              {pedidosReporte.slice(0, 8).map(p => (
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ fontSize: 10, letterSpacing: 1, color: "#555", padding: "12px 14px 6px" }}>ÚLTIMOS PEDIDOS</div>
+              {pedidosReporte.slice(0, 8).map((p, i) => (
                 <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
-                  style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "0.5px solid rgba(255,255,255,0.04)", cursor: "pointer" }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{p.nombre}</div>
-                    <div style={{ fontSize: 11, color: "#555" }}>{formatDate(p.ingreso)} · {p.kg} kg</div>
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 14px", borderTop: "0.5px solid rgba(255,255,255,0.04)", cursor: "pointer" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</div>
+                    <div style={{ fontSize: 10, color: "#555", marginTop: 1 }}>{formatDate(p.ingreso)} · {p.kg} kg</div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#a78bfa" }}>S/. {p.precio}</div>
-                    <div style={{ fontSize: 10, color: ESTADO_COLORS[p.estado] }}>{p.estado}</div>
+                  <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#a78bfa" }}>S/. {p.precio}</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: ESTADO_COLORS[p.estado] }}>{p.estado}</div>
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {reporte.deudores.length > 0 && (
-            <div style={{ marginTop: 16, background: "rgba(239,68,68,0.06)", border: "0.5px solid rgba(239,68,68,0.2)", borderRadius: 14, padding: "12px 14px" }}>
-              <div style={{ fontSize: 11, letterSpacing: 1, color: "#ef4444", marginBottom: 4 }}>⚠️ PENDIENTES DE COBRO</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: "#ef4444", marginBottom: 10 }}>S/. {reporte.porCobrar.toFixed(2)}</div>
-              {reporte.deudores.map(p => (
-                <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
-                  style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "0.5px solid rgba(239,68,68,0.1)", cursor: "pointer" }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{p.nombre}</div>
-                    <div style={{ fontSize: 11, color: "#555" }}>{p.estado}</div>
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#ef4444" }}>S/. {p.precio}</div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
@@ -803,7 +801,7 @@ export default function MCLaundry() {
 
           {/* Paso 1→2: En recojo → Recogido */}
           {pedidoDetalle.estado === "En recojo" && (
-            <button onClick={() => cambiarEstado(pedidoDetalle.id)}
+            <button onClick={() => setModal({ titulo: "¿Confirmar recojo?", msg: `Marcar la ropa de ${pedidoDetalle.nombre} como recogida.`, onConfirm: () => cambiarEstado(pedidoDetalle.id) })}
               style={{ width: "100%", background: "#e879f9", border: "none", borderRadius: 14, padding: "18px", cursor: "pointer", color: "#fff", fontSize: 15, fontWeight: 700, marginBottom: 12, boxShadow: "0 4px 20px rgba(232,121,249,0.4)" }}>
               🧺 Confirmar recojo
             </button>
@@ -833,19 +831,25 @@ export default function MCLaundry() {
                 onClick={() => {
                   if (!minutosTemp || parseFloat(minutosTemp) <= 0) return;
                   const mins = Math.round(parseFloat(minutosTemp) * 60);
-                  const ahora2 = Date.now();
-                  setPedidos(prev => prev.map(c => {
-                    if (c.id !== pedidoDetalle.id) return c;
-                    return {
-                      ...c,
-                      estado: "En lavandería",
-                      lavanderia: lavanderiaTemp,
-                      tiempoLavanderia: mins,
-                      inicioLavanderia: ahora2,
-                      historial: [...(c.historial || []), { estado: "En lavandería", fecha: ahora2, lavanderia: lavanderiaTemp }]
-                    };
-                  }));
-                  setMinutosTemp("");
+                  setModal({
+                    titulo: `¿Dejar en ${lavanderiaTemp}?`,
+                    msg: `${duracion(parseFloat(minutosTemp) * 3600000)} · listo aprox. ${formatTime(Date.now() + parseFloat(minutosTemp) * 3600000)}`,
+                    onConfirm: () => {
+                      const ahora2 = Date.now();
+                      setPedidos(prev => prev.map(c => {
+                        if (c.id !== pedidoDetalle.id) return c;
+                        return {
+                          ...c,
+                          estado: "En lavandería",
+                          lavanderia: lavanderiaTemp,
+                          tiempoLavanderia: mins,
+                          inicioLavanderia: ahora2,
+                          historial: [...(c.historial || []), { estado: "En lavandería", fecha: ahora2, lavanderia: lavanderiaTemp }]
+                        };
+                      }));
+                      setMinutosTemp("");
+                    }
+                  });
                 }}
                 style={{ width: "100%", background: minutosTemp && parseFloat(minutosTemp) > 0 ? "#3b82f6" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 10, padding: "14px", cursor: minutosTemp && parseFloat(minutosTemp) > 0 ? "pointer" : "default", color: minutosTemp && parseFloat(minutosTemp) > 0 ? "#fff" : "#444", fontSize: 14, fontWeight: 700, boxShadow: minutosTemp && parseFloat(minutosTemp) > 0 ? "0 4px 16px rgba(59,130,246,0.35)" : "none" }}>
                 🧼 Dejar en {lavanderiaTemp}
@@ -861,12 +865,14 @@ export default function MCLaundry() {
               <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
                 <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, marginBottom: 6 }}>TIEMPO RESTANTE</div>
                 <div style={{ fontSize: 36, fontWeight: 800, color: vencido ? "#ef4444" : "#3b82f6", marginBottom: 4, letterSpacing: -1 }}>
-                  {vencido ? <AlertCircle size={28} color="#ef4444" style={{display:"inline",verticalAlign:"middle",marginRight:6}} /> : <Timer size={28} color="#3b82f6" style={{display:"inline",verticalAlign:"middle",marginRight:6}} />}{duracion(restMs)} {!vencido && (Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes")}
+                  {vencido
+                    ? <><AlertCircle size={28} color="#ef4444" style={{display:"inline",verticalAlign:"middle",marginRight:6}} />Vencido hace {duracion(restMs)}</>
+                    : <><Timer size={28} color="#3b82f6" style={{display:"inline",verticalAlign:"middle",marginRight:6}} />{duracion(restMs)} {Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes"}</>}
                 </div>
                 <div style={{ fontSize: 12, color: "#555", marginBottom: 14 }}>
-                  {vencido ? "¡Tiempo vencido! Ve a recoger la ropa" : `Listo aprox. a las ${formatTime(new Date(fin))}`}
+                  {vencido ? "Ve a recoger la ropa cuanto antes" : `Listo aprox. a las ${formatTime(new Date(fin))}`}
                 </div>
-                <button onClick={() => cambiarEstado(pedidoDetalle.id)}
+                <button onClick={() => setModal({ titulo: "¿Recogiste la ropa?", msg: `La ropa de ${pedidoDetalle.nombre} pasará a "Listo para entregar".`, onConfirm: () => cambiarEstado(pedidoDetalle.id) })}
                   style={{ width: "100%", background: "#10b981", border: "none", borderRadius: 10, padding: "14px", cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 16px rgba(16,185,129,0.35)" }}>
                   ✅ Recogí la ropa — Lista para entregar
                 </button>
@@ -1134,8 +1140,10 @@ export default function MCLaundry() {
                 style={{ marginBottom: 10, cursor: "pointer" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{c.nombre}</div>
-                  <div style={{ fontSize: 11, color: c.listo ? "#10b981" : "#3b82f6", fontWeight: 700 }}>
-                    {c.listo ? <><PackageCheck size={12} style={{display:"inline",verticalAlign:"middle",marginRight:3}} />Lista</> : <><Timer size={12} style={{display:"inline",verticalAlign:"middle",marginRight:3}} />{duracion(c.restMs)}</>}
+                  <div style={{ fontSize: 11, color: c.listo ? "#ef4444" : "#3b82f6", fontWeight: 700 }}>
+                    {c.listo
+                      ? <><AlertCircle size={12} color="#ef4444" style={{display:"inline",verticalAlign:"middle",marginRight:3}} />Vencido hace {duracion(c.restMs)}</>
+                      : <><Timer size={12} style={{display:"inline",verticalAlign:"middle",marginRight:3}} />{duracion(c.restMs)}</>}
                   </div>
                 </div>
                 <div style={{ fontSize: 11, color: "#555", marginBottom: 5 }}>{c.lavanderia} · {c.kg} kg</div>
