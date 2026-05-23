@@ -325,26 +325,6 @@ export default function MCLaundry() {
             ))}
           </div>
 
-          <div style={{ display: "flex" }}>
-            {[
-              { key: "dashboard",   icon: <ClipboardList size={16} />, label: "Pedidos" },
-              { key: "directorio",  icon: <Users size={16} />,         label: "Clientes" },
-              { key: "lavanderias", icon: <WashingMachine size={16} />, label: "Lavands." },
-              { key: "reportes",    icon: <BarChart2 size={16} />,      label: "Reportes" },
-            ].map(t => {
-              const activo = tab === t.key;
-              return (
-                <button key={t.key} onClick={() => setTab(t.key)}
-                  style={{ flex: 1, background: "none", border: "none", borderBottom: activo ? "2px solid #10b981" : "2px solid transparent", padding: "10px 4px", cursor: "pointer", color: activo ? "#10b981" : "#555", fontSize: 12, fontWeight: activo ? 700 : 400, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                  <span style={{ fontSize: 16 }}>{t.icon}</span>
-                  <span>{t.label}</span>
-                  {t.key === "directorio" && directorio.length > 0 && (
-                    <span style={{ fontSize: 9, background: "rgba(167,139,250,0.2)", color: "#a78bfa", padding: "1px 5px", borderRadius: 8 }}>{directorio.length}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
         </div>
       )}
 
@@ -491,8 +471,6 @@ export default function MCLaundry() {
       {/* ══ REPORTES ══ */}
       {!vista && tab === "reportes" && (
         <div style={{ padding: "12px 16px 16px" }}>
-
-          {/* Selector de periodo */}
           <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
             {[{ key: "hoy", label: "Hoy" }, { key: "semana", label: "Esta semana" }, { key: "mes", label: "Este mes" }].map(p => (
               <button key={p.key} onClick={() => setPeriodoReporte(p.key)}
@@ -502,68 +480,32 @@ export default function MCLaundry() {
             ))}
           </div>
 
-          {/* GANANCIA — protagonista */}
-          <div style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 18, padding: "20px 18px", marginBottom: 12, textAlign: "center" }}>
-            <div style={{ fontSize: 10, color: "#10b981", letterSpacing: 2, marginBottom: 8 }}>TU GANANCIA</div>
-            <div style={{ fontSize: 48, fontWeight: 900, color: "#10b981", letterSpacing: -2, lineHeight: 1 }}>
-              S/. {reporte.ganancia.toFixed(2)}
-            </div>
-            <div style={{ fontSize: 12, color: "#555", marginTop: 8 }}>
-              {reporte.total} pedido{reporte.total !== 1 ? "s" : ""} · {reporte.entregados} entregado{reporte.entregados !== 1 ? "s" : ""}
-            </div>
-          </div>
-
-          {/* COBRADO e INGRESOS secundarios */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-            <div style={{ background: "rgba(167,139,250,0.08)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "14px 12px" }}>
+            <div style={{ background: "rgba(167,139,250,0.08)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "16px 14px" }}>
               <div style={{ fontSize: 10, color: "#a78bfa", letterSpacing: 1, marginBottom: 6 }}>COBRADO</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#a78bfa", letterSpacing: -1 }}>S/. {reporte.ingresos.toFixed(2)}</div>
-              <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{reporte.entregados} entregados</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: "#a78bfa", letterSpacing: -1 }}>S/. {reporte.ingresos.toFixed(2)}</div>
+              <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{reporte.total} pedido{reporte.total !== 1 ? "s" : ""}</div>
             </div>
-            <div style={{ background: "rgba(245,158,11,0.08)", border: "0.5px solid rgba(245,158,11,0.2)", borderRadius: 14, padding: "14px 12px" }}>
-              <div style={{ fontSize: 10, color: "#f59e0b", letterSpacing: 1, marginBottom: 6 }}>KG LAVADOS</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b", letterSpacing: -1 }}>{reporte.kg.toFixed(1)}</div>
-              <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>kilogramos</div>
+            <div style={{ background: "rgba(16,185,129,0.08)", border: "0.5px solid rgba(16,185,129,0.2)", borderRadius: 14, padding: "16px 14px" }}>
+              <div style={{ fontSize: 10, color: "#10b981", letterSpacing: 1, marginBottom: 6 }}>TU GANANCIA</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: "#10b981", letterSpacing: -1 }}>S/. {reporte.ganancia.toFixed(2)}</div>
+              <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{reporte.kg.toFixed(1)} kg lavados</div>
             </div>
           </div>
 
-          {/* POR COBRAR */}
-          {reporte.porCobrar > 0 && (
-            <div style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: reporte.deudores.length > 0 ? 12 : 0 }}>
-                <div>
-                  <div style={{ fontSize: 10, letterSpacing: 2, color: "#ef4444", marginBottom: 4 }}>⚠️ POR COBRAR</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "#ef4444", letterSpacing: -1 }}>S/. {reporte.porCobrar.toFixed(2)}</div>
-                </div>
-                <div style={{ fontSize: 11, color: "#666", textAlign: "right" }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: "#ef4444" }}>{reporte.deudores.length}</div>
-                  <div>deudor{reporte.deudores.length !== 1 ? "es" : ""}</div>
-                </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+            {[
+              { label: "Entregados", val: reporte.entregados, color: "#6b7280" },
+              { label: "Clientes únicos", val: reporte.clientesUnicos, color: "#f59e0b" },
+              { label: "Kg promedio", val: reporte.total > 0 ? (reporte.kg / reporte.total).toFixed(1) : "0", color: "#3b82f6" },
+            ].map((s, i) => (
+              <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: `0.5px solid ${s.color}22`, borderRadius: 10, padding: "12px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val}</div>
+                <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>{s.label}</div>
               </div>
+            ))}
+          </div>
 
-              {/* Lista de deudores */}
-              {reporte.deudores.length > 0 && (
-                <div style={{ borderTop: "0.5px solid rgba(239,68,68,0.15)", paddingTop: 10 }}>
-                  <div style={{ fontSize: 10, letterSpacing: 1, color: "#666", marginBottom: 8 }}>DEUDORES</div>
-                  {reporte.deudores.map(p => (
-                    <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
-                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "0.5px solid rgba(239,68,68,0.08)", cursor: "pointer" }}>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{p.nombre}</div>
-                        <div style={{ fontSize: 11, color: "#666" }}>{p.estado} · {p.kg} kg</div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: "#ef4444" }}>S/. {p.precio}</div>
-                        <span style={{ fontSize: 14, color: "#444" }}>→</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Por estado */}
           <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden", marginBottom: 16 }}>
             <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", padding: "12px 14px 8px" }}>POR ESTADO</div>
             {ESTADOS.map((e, i) => {
@@ -586,7 +528,7 @@ export default function MCLaundry() {
             })}
           </div>
 
-          {/* Últimos pedidos */}
+
           {pedidosReporte.length > 0 && (
             <div>
               <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 8 }}>ÚLTIMOS PEDIDOS</div>
@@ -601,6 +543,23 @@ export default function MCLaundry() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#a78bfa" }}>S/. {p.precio}</div>
                     <div style={{ fontSize: 10, color: ESTADO_COLORS[p.estado] }}>{p.estado}</div>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {reporte.deudores.length > 0 && (
+            <div style={{ marginTop: 16, background: "rgba(239,68,68,0.06)", border: "0.5px solid rgba(239,68,68,0.2)", borderRadius: 14, padding: "12px 14px" }}>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: "#ef4444", marginBottom: 4 }}>⚠️ PENDIENTES DE COBRO</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#ef4444", marginBottom: 10 }}>S/. {reporte.porCobrar.toFixed(2)}</div>
+              {reporte.deudores.map(p => (
+                <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
+                  style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "0.5px solid rgba(239,68,68,0.1)", cursor: "pointer" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>{p.nombre}</div>
+                    <div style={{ fontSize: 11, color: "#555" }}>{p.estado}</div>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#ef4444" }}>S/. {p.precio}</div>
                 </div>
               ))}
             </div>
@@ -879,29 +838,10 @@ export default function MCLaundry() {
               <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
                 <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, marginBottom: 6 }}>TIEMPO RESTANTE</div>
                 <div style={{ fontSize: 36, fontWeight: 800, color: vencido ? "#ef4444" : "#3b82f6", marginBottom: 4, letterSpacing: -1 }}>
-                  {vencido ? <AlertCircle size={28} color="#ef4444" style={{display:"inline",verticalAlign:"middle",marginRight:6}} /> : <Timer size={28} color="#3b82f6" style={{display:"inline",verticalAlign:"middle",marginRight:6}} />}
-                  {vencido ? `Vencido hace ${duracion(restMs)}` : `${duracion(restMs)} ${Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes"}`}
+                  {vencido ? <AlertCircle size={28} color="#ef4444" style={{display:"inline",verticalAlign:"middle",marginRight:6}} /> : <Timer size={28} color="#3b82f6" style={{display:"inline",verticalAlign:"middle",marginRight:6}} />}{duracion(restMs)} {!vencido && (Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes")}
                 </div>
-                {/* Barra de progreso */}
-                {(() => {
-                  const total = pedidoDetalle.tiempoLavanderia * 60000;
-                  const elapsed = total - restMs;
-                  const pct = vencido ? 100 : Math.min(100, Math.round((elapsed / total) * 100));
-                  return (
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 4, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${pct}%`, background: vencido ? "#ef4444" : "#3b82f6", borderRadius: 4, transition: "width 0.5s ease" }} />
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#444", marginTop: 3 }}>
-                        <span>{formatTime(new Date(pedidoDetalle.inicioLavanderia))}</span>
-                        <span style={{ color: vencido ? "#ef4444" : "#555" }}>{pct}%</span>
-                        <span>{formatTime(new Date(fin))}</span>
-                      </div>
-                    </div>
-                  );
-                })()}
-                <div style={{ fontSize: 12, color: vencido ? "#ef4444" : "#555", marginBottom: 14, fontWeight: vencido ? 600 : 400 }}>
-                  {vencido ? "¡Ve a recoger la ropa ahora!" : `Listo aprox. a las ${formatTime(new Date(fin))}`}
+                <div style={{ fontSize: 12, color: "#555", marginBottom: 14 }}>
+                  {vencido ? "¡Tiempo vencido! Ve a recoger la ropa" : `Listo aprox. a las ${formatTime(new Date(fin))}`}
                 </div>
                 <button onClick={() => cambiarEstado(pedidoDetalle.id)}
                   style={{ width: "100%", background: "#10b981", border: "none", borderRadius: 10, padding: "14px", cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 700, boxShadow: "0 4px 16px rgba(16,185,129,0.35)" }}>
