@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Bike, ShoppingBasket, WashingMachine, PackageCheck, Package, Phone, MapPin, FileText, Timer, AlertCircle, User, Users, BarChart2, ClipboardList, Plus, Shirt, Map, pencil } from "lucide-react";
+import { Bike, ShoppingBasket, WashingMachine, PackageCheck, Package, Phone, MapPin, FileText, Timer, AlertCircle, User, Users, BarChart2, ClipboardList, Plus, Shirt, Map, Pencil } from "lucide-react";
 
 const LAVANDERIAS_DEFAULT = ["Lavandería Centro", "Lavandería Norte", "Lavandería Express", "Otra"];
 const ESTADOS = ["En recojo", "Recogido", "En lavandería", "Listo para entregar", "Entregado"];
@@ -1153,7 +1153,7 @@ export default function MCLaundry() {
                       </>
                     ) : (
                       <>
-                        <button onClick={() => setEditandoLav({ idx, nombre: lav })} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#888", fontSize: 13, cursor: "pointer" }}><pencil size={14} /></button>
+                        <button onClick={() => setEditandoLav({ idx, nombre: lav })} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#888", fontSize: 13, cursor: "pointer" }}><Pencil size={14} /></button>
                       </>
                     )}
                   </div>
