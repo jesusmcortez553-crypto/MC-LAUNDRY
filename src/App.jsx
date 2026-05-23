@@ -621,10 +621,10 @@ export default function MCLaundry() {
               {form.clienteId && (() => {
                 const cl = directorio.find(d => d.id === parseInt(form.clienteId));
                 if (!cl) return null;
-                const mapsUrl = cl.mapsLink
-                  ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.mapsLink)}&travelmode=motorcycle`
-                  : cl.coordenadas
+                const mapsUrl = cl.coordenadas
                   ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${cl.coordenadas.lat},${cl.coordenadas.lng}&travelmode=motorcycle`
+                  : cl.mapsLink
+                  ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.mapsLink)}&travelmode=motorcycle`
                   : cl.direccion
                   ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.direccion + " Pichanaki Peru")}&travelmode=motorcycle`
                   : null;
@@ -749,7 +749,28 @@ export default function MCLaundry() {
           {(pedidoDetalle.celularEntrega || pedidoDetalle.direccionEntrega || pedidoDetalle.notasEntregaCliente) && (
             <div style={{ background: "rgba(167,139,250,0.06)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
               <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", marginBottom: 10 }}>DATOS DE ENTREGA</div>
-              {pedidoDetalle.celularEntrega && <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><Phone size={14} color="#a78bfa" style={{flexShrink:0}} /><a href={`tel:${pedidoDetalle.celularEntrega}`} style={{ fontSize: 15, color: "#a78bfa", textDecoration: "none", fontWeight: 600 }}>{pedidoDetalle.celularEntrega}</a></div>}
+              {pedidoDetalle.celularEntrega && (() => {
+                const num = pedidoDetalle.celularEntrega.replace(/\D/g, "");
+                const wa = `https://wa.me/51${num.startsWith("51") ? num.slice(2) : num}`;
+                return (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                      <Phone size={13} color="#a78bfa" />
+                      <span style={{ fontSize: 13, color: "#a78bfa", fontWeight: 600 }}>{pedidoDetalle.celularEntrega}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <a href={wa} target="_blank" rel="noopener noreferrer"
+                        style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "#25d366", color: "#fff", fontSize: 14, fontWeight: 700, padding: "11px 0", borderRadius: 10, textDecoration: "none" }}>
+                        💬 WhatsApp
+                      </a>
+                      <a href={`tel:+51${num.startsWith("51") ? num.slice(2) : num}`}
+                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(255,255,255,0.07)", color: "#ccc", fontSize: 14, fontWeight: 600, padding: "11px 0", borderRadius: 10, textDecoration: "none" }}>
+                        📞 Llamar
+                      </a>
+                    </div>
+                  </div>
+                );
+              })()}
               {pedidoDetalle.direccionEntrega && <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
                 <MapPin size={14} color="#a78bfa" style={{flexShrink:0}} />
                 <div style={{ flex: 1 }}>
@@ -758,6 +779,8 @@ export default function MCLaundry() {
                     const cl = directorio.find(d => String(d.id) === String(pedidoDetalle.clienteId));
                     const mapsUrl = cl?.coordenadas
                       ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${cl.coordenadas.lat},${cl.coordenadas.lng}&travelmode=motorcycle`
+                      : cl?.mapsLink
+                      ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.mapsLink)}&travelmode=motorcycle`
                       : cl?.direccion
                       ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.direccion + " Pichanaki Peru")}&travelmode=motorcycle`
                       : pedidoDetalle.direccionEntrega
@@ -919,40 +942,54 @@ export default function MCLaundry() {
               </div>
             ))}
 
-            {/* Ubicación GPS */}
+            {/* Ubicación GPS + coordenadas manuales */}
             <div>
-              <label style={labelStyle}>UBICACIÓN EN MAPS</label>
+              <label style={labelStyle}>UBICACIÓN (COORDENADAS)</label>
+
+              {/* Botón GPS */}
               <button onClick={capturarUbicacion} disabled={gpsLoading}
-                style={{ width: "100%", background: clienteDir.coordenadas ? "rgba(16,185,129,0.1)" : "rgba(59,130,246,0.08)", border: `0.5px solid ${clienteDir.coordenadas ? "rgba(16,185,129,0.3)" : "rgba(59,130,246,0.3)"}`, borderRadius: 10, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                style={{ width: "100%", background: clienteDir.coordenadas ? "rgba(16,185,129,0.1)" : "rgba(59,130,246,0.08)", border: `0.5px solid ${clienteDir.coordenadas ? "rgba(16,185,129,0.3)" : "rgba(59,130,246,0.3)"}`, borderRadius: 10, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <span style={{ fontSize: 20 }}>{gpsLoading ? <Timer size={20} color="#3b82f6" /> : clienteDir.coordenadas ? <PackageCheck size={20} color="#10b981" /> : <MapPin size={20} color="#3b82f6" />}</span>
                 <div style={{ textAlign: "left" }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: clienteDir.coordenadas ? "#10b981" : "#3b82f6" }}>
-                    {gpsLoading ? "Obteniendo ubicación..." : clienteDir.coordenadas ? "Ubicación capturada" : "Marcar ubicación actual"}
+                    {gpsLoading ? "Obteniendo ubicación..." : clienteDir.coordenadas ? "Ubicación capturada ✓" : "Usar mi ubicación actual (GPS)"}
                   </div>
                   <div style={{ fontSize: 11, color: "#555", marginTop: 1 }}>
-                    {clienteDir.coordenadas ? `${clienteDir.coordenadas.lat.toFixed(5)}, ${clienteDir.coordenadas.lng.toFixed(5)}` : "Toca cuando estés en casa del cliente"}
+                    {clienteDir.coordenadas ? `${clienteDir.coordenadas.lat.toFixed(6)}, ${clienteDir.coordenadas.lng.toFixed(6)}` : "Toca cuando estés en casa del cliente"}
                   </div>
                 </div>
                 {clienteDir.coordenadas && (
                   <div style={{ marginLeft: "auto" }}
-                    onClick={e => { e.stopPropagation(); setClienteDir(p => ({ ...p, coordenadas: null, mapsLink: "" })); }}>
+                    onClick={e => { e.stopPropagation(); setClienteDir(p => ({ ...p, coordenadas: null })); }}>
                     <span style={{ fontSize: 12, color: "#555" }}>✕</span>
                   </div>
                 )}
               </button>
 
-              {/* O pegar link manualmente */}
-              <div style={{ fontSize: 11, color: "#555", textAlign: "center", marginBottom: 8 }}>— o pega un link de Google Maps —</div>
-              <input type="url" placeholder="https://maps.google.com/..."
-                value={clienteDir.mapsLink}
-                onChange={e => setClienteDir(p => ({ ...p, mapsLink: e.target.value, coordenadas: null }))}
-                style={{ ...inputStyle, fontSize: 13 }} />
-              {clienteDir.mapsLink ? (
-                <a href={clienteDir.mapsLink} target="_blank" rel="noopener noreferrer"
-                  style={{ display: "block", marginTop: 6, fontSize: 11, color: "#3b82f6", textAlign: "center" }}>
-                  Ver en Maps →
+              {/* Campo manual lat, lng */}
+              <div style={{ fontSize: 11, color: "#555", textAlign: "center", marginBottom: 8 }}>— o ingresa coordenadas manualmente —</div>
+              <input
+                type="text"
+                placeholder="Ej: -10.92345, -74.98765"
+                value={clienteDir.coordenadas && !gpsLoading ? `${clienteDir.coordenadas.lat}, ${clienteDir.coordenadas.lng}` : ""}
+                onChange={e => {
+                  const val = e.target.value;
+                  const match = val.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+                  if (match) {
+                    setClienteDir(p => ({ ...p, coordenadas: { lat: parseFloat(match[1]), lng: parseFloat(match[2]) } }));
+                  } else if (val === "") {
+                    setClienteDir(p => ({ ...p, coordenadas: null }));
+                  }
+                }}
+                style={{ ...inputStyle, fontSize: 13, borderColor: clienteDir.coordenadas ? "rgba(16,185,129,0.4)" : "rgba(255,255,255,0.1)" }}
+              />
+              {clienteDir.coordenadas && (
+                <a href={`https://maps.google.com/?q=${clienteDir.coordenadas.lat},${clienteDir.coordenadas.lng}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ display: "block", marginTop: 6, fontSize: 11, color: "#10b981", textAlign: "center" }}>
+                  Verificar en Maps →
                 </a>
-              ) : null}
+              )}
             </div>
 
             <div>
@@ -983,31 +1020,45 @@ export default function MCLaundry() {
             </div>
             <div style={{ background: "rgba(167,139,250,0.06)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
               <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", marginBottom: 12 }}>DATOS DE CONTACTO</div>
-              {clienteDirDetalle.celular ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}><Phone size={18} color="#a78bfa" /></div>
-                  <div>
-                    <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>CELULAR</div>
-                    <a href={`tel:${clienteDirDetalle.celular}`} style={{ fontSize: 16, color: "#a78bfa", textDecoration: "none", fontWeight: 700 }}>{clienteDirDetalle.celular}</a>
+              {clienteDirDetalle.celular ? (() => {
+                const num = clienteDirDetalle.celular.replace(/\D/g, "");
+                const wa = `https://wa.me/51${num.startsWith("51") ? num.slice(2) : num}`;
+                return (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}><Phone size={18} color="#a78bfa" /></div>
+                      <div>
+                        <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>CELULAR</div>
+                        <div style={{ fontSize: 16, color: "#a78bfa", fontWeight: 700 }}>{clienteDirDetalle.celular}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <a href={wa} target="_blank" rel="noopener noreferrer"
+                        style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "#25d366", color: "#fff", fontSize: 14, fontWeight: 700, padding: "11px 0", borderRadius: 10, textDecoration: "none" }}>
+                        💬 WhatsApp
+                      </a>
+                      <a href={`tel:+51${num.startsWith("51") ? num.slice(2) : num}`}
+                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(255,255,255,0.07)", color: "#ccc", fontSize: 14, fontWeight: 600, padding: "11px 0", borderRadius: 10, textDecoration: "none" }}>
+                        📞 Llamar
+                      </a>
+                    </div>
                   </div>
-                </div>
-              ) : <div style={{ fontSize: 12, color: "#444", marginBottom: 10 }}>Sin celular</div>}
+                );
+              })() : <div style={{ fontSize: 12, color: "#444", marginBottom: 10 }}>Sin celular</div>}
               {clienteDirDetalle.direccion && (
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><MapPin size={18} color="#a78bfa" /></div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>DIRECCIÓN</div>
                     <div style={{ fontSize: 13 }}>{clienteDirDetalle.direccion}</div>
-                    {clienteDirDetalle.mapsLink && (
-                      <a href={clienteDirDetalle.mapsLink} target="_blank" rel="noopener noreferrer"
+                    {(clienteDirDetalle.coordenadas || clienteDirDetalle.mapsLink) && (
+                      <a href={
+                        clienteDirDetalle.coordenadas
+                          ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${clienteDirDetalle.coordenadas.lat},${clienteDirDetalle.coordenadas.lng}&travelmode=motorcycle`
+                          : `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(clienteDirDetalle.mapsLink)}&travelmode=motorcycle`
+                      } target="_blank" rel="noopener noreferrer"
                         style={{ display: "inline-block", marginTop: 6, background: "#3b82f6", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}>
-                        🗺 Abrir en Maps
-                      </a>
-                    )}
-                    {!clienteDirDetalle.mapsLink && clienteDirDetalle.coordenadas && (
-                      <a href={`https://maps.google.com/?q=${clienteDirDetalle.coordenadas.lat},${clienteDirDetalle.coordenadas.lng}`} target="_blank" rel="noopener noreferrer"
-                        style={{ display: "inline-block", marginTop: 6, background: "#3b82f6", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}>
-                        🗺 Abrir en Maps
+                        🗺 Ir en moto al cliente
                       </a>
                     )}
                   </div>
