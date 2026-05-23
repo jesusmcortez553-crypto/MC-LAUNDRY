@@ -396,29 +396,26 @@ export default function MCLaundry() {
                 const esUrgente = urgentes.some(u => u.id === c.id);
                 return (
                   <div key={c.id} onClick={() => { setPedidoActivo(c.id); setVista("detalle"); }}
-                    style={{ background: esUrgente ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${esUrgente ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
+                    style={{ background: esUrgente ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${esUrgente ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: "16px 14px", cursor: "pointer" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                          <span style={{ fontSize: 15 }}>{ESTADO_ICON[c.estado]}</span>
-                          <div style={{ fontSize: 15, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nombre}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                          <span style={{ fontSize: 18 }}>{ESTADO_ICON[c.estado]}</span>
+                          <div style={{ fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nombre}</div>
                         </div>
-                        <div style={{ fontSize: 12, color: "#555", marginBottom: 3 }}>
+                        <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
                           {c.lavanderia || <span style={{ color: "#e879f9" }}>⚡ Sin lavandería</span>}
                         </div>
                         {c.direccionEntrega && (
-                          <div style={{ fontSize: 11, color: "#a78bfa", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={11} color="#a78bfa" style={{marginRight:4}} />{c.direccionEntrega}</div>
+                          <div style={{ fontSize: 13, color: "#a78bfa", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={13} color="#a78bfa" style={{marginRight:4}} />{c.direccionEntrega}</div>
                         )}
-                        <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#666" }}>
+                        <div style={{ display: "flex", gap: 12, fontSize: 14, color: "#666" }}>
                           <span>{c.kg} kg</span>
-                          <span style={{ color: "#a78bfa", fontWeight: 600 }}>S/. {c.precio}</span>
+                          <span style={{ color: "#a78bfa", fontWeight: 700 }}>S/. {c.precio}</span>
                           <span>{timeAgo(c.ingreso)}</span>
                         </div>
-                        {c.estado === "Listo para entregar" && c.direccionEntrega && (
-                          <div style={{ marginTop: 5, fontSize: 12, color: "#10b981", fontWeight: 500 }}><MapPin size={11} color="#a78bfa" style={{marginRight:4}} />{c.direccionEntrega}</div>
-                        )}
                       </div>
-                      <div style={{ fontSize: 10, letterSpacing: 0.5, fontWeight: 700, color: ESTADO_COLORS[c.estado], background: `${ESTADO_COLORS[c.estado]}15`, padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap", marginLeft: 10, flexShrink: 0 }}>
+                      <div style={{ fontSize: 11, letterSpacing: 0.5, fontWeight: 700, color: ESTADO_COLORS[c.estado], background: `${ESTADO_COLORS[c.estado]}15`, padding: "6px 12px", borderRadius: 8, whiteSpace: "nowrap", marginLeft: 10, flexShrink: 0 }}>
                         {c.estado.toUpperCase()}
                       </div>
                     </div>
@@ -687,35 +684,6 @@ export default function MCLaundry() {
               { label: "Lavandería", val: pedidoDetalle.lavanderia || <span style={{ color: "#e879f9" }}>Sin asignar</span> },
               { label: "Kilos", val: `${pedidoDetalle.kg} kg` },
               { label: "Cobrado", val: <span style={{ color: "#a78bfa", fontWeight: 700 }}>S/. {pedidoDetalle.precio}</span> },
-              { label: "Pago", val: (
-                <div style={{ display: "flex", gap: 5 }}>
-                  {["Efectivo","Yape","No pagó"].map(op => {
-                    const activo = (pedidoDetalle.pago || "No pagó") === op;
-                    const color = op === "Efectivo" ? "#10b981" : op === "Yape" ? "#a78bfa" : "#ef4444";
-                    return (
-                      <button key={op}
-                        onClick={e => {
-                          e.stopPropagation();
-                          if (activo) return;
-                          setModal({
-                            titulo: `¿Confirmar pago en ${op}?`,
-                            msg: op !== "No pagó" ? `Se registrará el pago a las ${formatTime(Date.now())}` : "Se marcará como sin pago",
-                            onConfirm: () => {
-                              const ahora = Date.now();
-                              setPedidos(prev => prev.map(c => c.id === pedidoDetalle.id ? {
-                                ...c, pago: op,
-                                ...(op !== "No pagó" ? { fechaPago: ahora } : { fechaPago: null })
-                              } : c));
-                            }
-                          });
-                        }}
-                        style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6, border: `1px solid ${activo ? color : "rgba(255,255,255,0.1)"}`, background: activo ? `${color}22` : "transparent", color: activo ? color : "#555", cursor: "pointer" }}>
-                        {op}
-                      </button>
-                    );
-                  })}
-                </div>
-              )},
               { label: "Costo lav.", val: (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ color: "#ef4444" }}>S/. {(pedidoDetalle.costoLavanderia ?? (pedidoDetalle.kg * 3.5)).toFixed(2)}</span>
@@ -741,6 +709,37 @@ export default function MCLaundry() {
                 <span style={{ fontSize: 13, textAlign: "right", maxWidth: "60%" }}>{r.val}</span>
               </div>
             ))}
+          </div>
+
+          {/* Pago — bloque full-width fuera de tabla */}
+          <div style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, letterSpacing: 1, color: "#555", marginBottom: 10 }}>PAGO</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["Efectivo","Yape","No pagó"].map(op => {
+                const activo = (pedidoDetalle.pago || "No pagó") === op;
+                const color = op === "Efectivo" ? "#10b981" : op === "Yape" ? "#a78bfa" : "#ef4444";
+                return (
+                  <button key={op}
+                    onClick={() => {
+                      if (activo) return;
+                      setModal({
+                        titulo: `¿Confirmar pago en ${op}?`,
+                        msg: op !== "No pagó" ? `Se registrará el pago a las ${formatTime(Date.now())}` : "Se marcará como sin pago",
+                        onConfirm: () => {
+                          const ahora = Date.now();
+                          setPedidos(prev => prev.map(c => c.id === pedidoDetalle.id ? {
+                            ...c, pago: op,
+                            ...(op !== "No pagó" ? { fechaPago: ahora } : { fechaPago: null })
+                          } : c));
+                        }
+                      });
+                    }}
+                    style={{ flex: 1, minHeight: 52, fontSize: 15, fontWeight: 700, borderRadius: 12, border: `1.5px solid ${activo ? color : "rgba(255,255,255,0.1)"}`, background: activo ? `${color}22` : "transparent", color: activo ? color : "#555", cursor: "pointer" }}>
+                    {op === "Efectivo" ? "💵 Efectivo" : op === "Yape" ? "📲 Yape" : "❌ No pagó"}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Datos de entrega */}
