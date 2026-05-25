@@ -284,7 +284,7 @@ export default function MCLaundry() {
   const clienteDirDetalle = directorio.find(d => d.id === clienteDirActivo);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "'DM Sans','Segoe UI',sans-serif", color: "#0f172a", maxWidth: 480, margin: "0 auto", paddingBottom: 90 }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "'DM Sans','Segoe UI',sans-serif", color: "#0f172a", width: "100%", paddingBottom: 90, overflowX: "hidden" }}>
 
       {/* Toast */}
       {alertas.map((a, i) => (
@@ -1319,7 +1319,7 @@ export default function MCLaundry() {
       )}
 
       {/* ══ BOTTOM NAV ══ */}
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.97)", borderTop: "0.5px solid rgba(14,165,233,0.2)", boxShadow: "0 -4px 20px rgba(0,0,0,0.08)", display: "flex", zIndex: 40 }}>
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, width: "100%", background: "rgba(255,255,255,0.97)", borderTop: "2px solid #0ea5e9", boxShadow: "0 -4px 24px rgba(14,165,233,0.12)", display: "flex", zIndex: 40 }}>
         {[
           { key: "dashboard",   icon: <ClipboardList size={20} />, label: "Pedidos",   badge: urgentes.length },
           { key: "directorio",  icon: <Users size={20} />,          label: "Clientes",  badge: 0 },
