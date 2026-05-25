@@ -9,16 +9,13 @@ const SIGUIENTE_ESTADO = {
   "En lavandería": "Listo para entregar",
   "Listo para entregar": "Entregado",
 };
-
-// Paleta optimizada para el sol: tonos oscuros de alta saturación
 const ESTADO_COLORS = {
-  "En recojo":           "#D97706", // Ámbar oscuro
-  "Recogido":            "#C026D3", // Fucsia fuerte
-  "En lavandería":       "#2563EB", // Azul rey de alta visibilidad
-  "Listo para entregar": "#16A34A", // Verde esmeralda encendido
-  "Entregado":           "#4B5563", // Gris oscuro texturizado
+  "En recojo":           "#f59e0b",
+  "Recogido":            "#e879f9",
+  "En lavandería":       "#3b82f6",
+  "Listo para entregar": "#10b981",
+  "Entregado":           "#6b7280",
 };
-
 const ESTADO_DESC = {
   "En recojo":           "Camino a buscar la ropa",
   "Recogido":            "Ropa en mano · eligiendo lavandería",
@@ -26,602 +23,1319 @@ const ESTADO_DESC = {
   "Listo para entregar": "Recogida · camino al cliente",
   "Entregado":           "Servicio completado",
 };
-
-const ESTADO_ICONS = {
-  "En recojo":           <Bike size={22} strokeWidth={2.5} />,
-  "Recogido":            <ShoppingBasket size={22} strokeWidth={2.5} />,
-  "En lavandería":       <WashingMachine size={22} strokeWidth={2.5} />,
-  "Listo para entregar": <PackageCheck size={22} strokeWidth={2.5} />,
-  "Entregado":           <Package size={22} strokeWidth={2.5} />,
+const ESTADO_ICON = {
+  "En recojo":           <Bike size={15} color="#f59e0b" />,
+  "Recogido":            <ShoppingBasket size={15} color="#e879f9" />,
+  "En lavandería":       <WashingMachine size={15} color="#3b82f6" />,
+  "Listo para entregar": <PackageCheck size={15} color="#10b981" />,
+  "Entregado":           <Package size={15} color="#6b7280" />,
 };
 
-export default function App() {
-  // --- ESTADOS PRINCIPALES ---
+function formatTime(date) {
+  return new Date(date).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+}
+function formatDate(date) {
+  return new Date(date).toLocaleDateString("es-PE", { day: "2-digit", month: "short" });
+}
+function duracion(ms) {
+  const totalMin = Math.floor(Math.abs(ms) / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (totalMin < 1) return "1m";
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+function timeAgo(date) {
+  return duracion(Date.now() - new Date(date).getTime());
+}
+function startOfWeek(d) {
+  const dt = new Date(d); dt.setDate(dt.getDate() - dt.getDay()); dt.setHours(0,0,0,0); return dt;
+}
+function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+
+const initialForm = { nombre: "", kg: "", notas: "", precio: "", clienteId: "" };
+const initialClienteDir = { nombre: "", celular: "", direccion: "", notasEntrega: "", coordenadas: null, mapsLink: "" };
+const inputStyle = {
+  width: "100%", background: "rgba(255,255,255,0.05)",
+  border: "0.5px solid rgba(255,255,255,0.1)",
+  borderRadius: 10, padding: "12px 14px",
+  color: "#e8e4dc", fontSize: 15, outline: "none",
+  boxSizing: "border-box", fontFamily: "inherit"
+};
+const labelStyle = { fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 6, display: "block" };
+
+export default function MCLaundry() {
   const [pedidos, setPedidos] = useState(() => {
-    const s = localStorage.getItem("lavago_pedidos");
-    return s ? JSON.parse(s) : [];
+    try { return JSON.parse(localStorage.getItem("mc_clientes") || "[]"); } catch { return []; }
   });
-
   const [directorio, setDirectorio] = useState(() => {
-    const s = localStorage.getItem("lavago_directorio");
-    return s ? JSON.parse(s) : [];
+    try { return JSON.parse(localStorage.getItem("mc_directorio") || "[]"); } catch { return []; }
   });
-
   const [lavanderias, setLavanderias] = useState(() => {
-    const s = localStorage.getItem("lavago_lavanderias");
-    return s ? JSON.parse(s) : LAVANDERIAS_DEFAULT;
+    try { return JSON.parse(localStorage.getItem("mc_lavanderias") || "null") || LAVANDERIAS_DEFAULT; } catch { return LAVANDERIAS_DEFAULT; }
   });
-
-  // --- NAVEGACIÓN ---
-  const [tab, setTab] = useState("dashboard"); // "dashboard", "directorio", "lavanderias", "reportes"
-  const [vista, setVista] = useState(null); // null, "crear-pedido", "ver-pedido", "crear-cliente"
-  const [pedidoSelId, setPedidoSelId] = useState(null);
-
-  // --- ALERTAS TIEMPO REAL ---
+  const [nuevaLavanderia, setNuevaLavanderia] = useState("");
+  const [editandoLav, setEditandoLav] = useState(null); // { idx, nombre }
+  const [form, setForm] = useState(initialForm);
+  const [clienteDir, setClienteDir] = useState(initialClienteDir);
+  const [tab, setTab] = useState("dashboard");
+  const [vista, setVista] = useState(null);
+  const [pedidoActivo, setPedidoActivo] = useState(null);
+  const [clienteDirActivo, setClienteDirActivo] = useState(null);
+  const [alertas, setAlertas] = useState([]);
+  const [filtro, setFiltro] = useState("recojo");
+  const [busquedaDir, setBusquedaDir] = useState("");
+  const [sugerencias, setSugerencias] = useState([]);
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  const [modal, setModal] = useState(null); // { tipo, titulo, msg, onConfirm }
+  const [costoLavTemp, setCostoLavTemp] = useState("");
+  const [lavanderiaTemp, setLavanderiaTemp] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("mc_lavanderias") || "null")?.[0] || LAVANDERIAS_DEFAULT[0]; } catch { return LAVANDERIAS_DEFAULT[0]; }
+  });
+  const [minutosTemp, setMinutosTemp] = useState("");
+  const [periodoReporte, setPeriodoReporte] = useState("semana");
   const [tick, setTick] = useState(0);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const nombreInputRef = useRef(null);
+
+  const capturarUbicacion = () => {
+    if (!navigator.geolocation) return;
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setClienteDir(p => ({
+          ...p,
+          coordenadas: { lat, lng },
+          mapsLink: `https://maps.google.com/?q=${lat},${lng}`
+        }));
+        setGpsLoading(false);
+      },
+      () => setGpsLoading(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  useEffect(() => { try { localStorage.setItem("mc_clientes", JSON.stringify(pedidos)); } catch {} }, [pedidos]);
+  useEffect(() => { try { localStorage.setItem("mc_directorio", JSON.stringify(directorio)); } catch {} }, [directorio]);
+  useEffect(() => { try { localStorage.setItem("mc_lavanderias", JSON.stringify(lavanderias)); } catch {} }, [lavanderias]);
+
+  // Tick cada 30s para actualizar temporizadores
   useEffect(() => {
-    const i = setInterval(() => setTick(t => t + 1), 30000);
-    return () => clearInterval(i);
+    const t = setInterval(() => setTick(n => n + 1), 30000);
+    return () => clearInterval(t);
   }, []);
 
+
+  // Pedir permiso de notificaciones al montar
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
+    if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, []);
 
-  // Guardar en LocalStorage cada vez que cambien los datos
-  useEffect(() => { localStorage.setItem("lavago_pedidos", JSON.stringify(pedidos)); }, [pedidos]);
-  useEffect(() => { localStorage.setItem("lavago_directorio", JSON.stringify(directorio)); }, [directorio]);
-  useEffect(() => { localStorage.setItem("lavago_lavanderias", JSON.stringify(lavanderias)); }, [lavanderias]);
-
-  // --- FORMULARIOS ---
-  const [form, setForm] = useState({
-    clienteId: "",
-    nombre: "",
-    celular: "",
-    direccion: "",
-    referencia: "",
-    mapsLink: "",
-    peso: "",
-    costoLavanderia: "",
-    montoCobrado: "",
-    lavanderiaAsignada: LAVANDERIAS_DEFAULT[0],
-    duracionEstimada: "120",
-    notas: ""
-  });
-
-  const [formCli, setFormCli] = useState({ nombre: "", celular: "", direccion: "", referencia: "", mapsLink: "" });
-  const [nuevaLav, setNuevaLav] = useState("");
-
-  // --- AUTOCOMPLETADO EN TIEMPO REAL ---
-  const handleNombreChange = (val) => {
-    setForm(f => ({ ...f, nombre: val }));
-    const coincidencia = directorio.find(d => d.nombre.toLowerCase().trim() === val.toLowerCase().trim());
-    if (coincidencia) {
-      setForm(f => ({
-        ...f,
-        clienteId: coincidencia.id,
-        celular: coincidencia.celular,
-        direccion: coincidencia.direccion,
-        referencia: coincidencia.referencia,
-        mapsLink: coincidencia.mapsLink
-      }));
-    } else {
-      setForm(f => ({ ...f, clienteId: "" }));
-    }
-  };
-
-  const capturarUbicacion = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const { latitude, longitude } = pos.coords;
-        // CORREGIDO: URL interactiva de mapas estándar y template literals bien estructurados
-        const link = `https://www.google.com/maps?q=${latitude},${longitude}`;
-        setForm(f => ({ ...f, mapsLink: link }));
-        setFormCli(f => ({ ...f, mapsLink: link }));
-        alert("📍 Ubicación GPS capturada exitosamente");
-      }, () => {
-        alert("No se pudo obtener el acceso GPS.");
-      });
-    }
-  };
-
-  // --- MANEJADORES DE ACCIONES ---
-  const agregarPedido = (e) => {
-    e.preventDefault();
-    if (!form.nombre.trim()) return;
-
-    let cId = form.clienteId;
-    if (!cId) {
-      cId = crypto.randomUUID();
-      const nuevoCli = {
-        id: cId,
-        nombre: form.nombre.trim(),
-        celular: form.celular.trim(),
-        direccion: form.direccion.trim(),
-        referencia: form.referencia.trim(),
-        mapsLink: form.mapsLink.trim(),
-      };
-      setDirectorio(prev => [nuevoCli, ...prev]);
-    }
-
-    const nuevoPed = {
-      id: crypto.randomUUID(),
-      clienteId: cId,
-      nombre: form.nombre.trim(),
-      celular: form.celular.trim(),
-      direccion: form.direccion.trim(),
-      referencia: form.referencia.trim(),
-      mapsLink: form.mapsLink.trim(),
-      peso: parseFloat(form.peso) || 0,
-      costoLavanderia: parseFloat(form.costoLavanderia) || 0,
-      montoCobrado: parseFloat(form.montoCobrado) || 0,
-      lavanderiaAsignada: form.lavanderiaAsignada,
-      duracionEstimada: parseInt(form.duracionEstimada) || 120,
-      notas: form.notas.trim(),
-      estado: "En recojo",
-      historial: [{ estado: "En recojo", fecha: new Date().toISOString() }],
-      timestampLavanderia: null
-    };
-
-    setPedidos(prev => [nuevoPed, ...prev]);
-    setVista(null);
-    resetForm();
-  };
-
-  const avanzarEstado = (id) => {
-    setPedidos(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      const prox = SIGUIENTE_ESTADO[p.estado];
-      if (!prox) return p;
-
-      const nHistorial = [...p.historial, { estado: prox, fecha: new Date().toISOString() }];
-      let tLav = p.timestampLavanderia;
-      if (prox === "En lavandería") {
-        tLav = new Date().toISOString();
+  // Alertas por temporizador vencido — batched, sin setState en loop
+  useEffect(() => {
+    const nuevasAlertas = [];
+    const idsMarcados = [];
+    pedidos.forEach(c => {
+      if (c.estado === "En lavandería" && c.inicioLavanderia && c.tiempoLavanderia && !c.alertado) {
+        const fin = new Date(c.inicioLavanderia).getTime() + c.tiempoLavanderia * 60000;
+        if (Date.now() >= fin) {
+          nuevasAlertas.push({ id: c.id, msg: `¡Recoger ropa de ${c.nombre} en ${c.lavanderia}!` });
+          idsMarcados.push(c.id);
+        }
       }
+    });
+    if (nuevasAlertas.length > 0) {
+      setAlertas(prev => [...prev, ...nuevasAlertas]);
+      setPedidos(prev => prev.map(c => idsMarcados.includes(c.id) ? { ...c, alertado: true } : c));
+    }
+  }, [tick]);
 
-      return { ...p, estado: prox, historial: nHistorial, timestampLavanderia: tLav };
+  // ─── Pedidos ────────────────────────────────────────────────
+  const agregarPedido = () => {
+    if (!form.nombre || !form.kg) return;
+    const cl = directorio.find(d =>
+      String(d.id) === String(form.clienteId) ||
+      (!form.clienteId && d.nombre.toLowerCase() === form.nombre.toLowerCase())
+    );
+    const ahora = Date.now();
+    const nuevo = {
+      id: crypto.randomUUID(), ...form,
+      kg: Number(form.kg),
+      precio: form.precio || (Number(form.kg) * 5).toFixed(2),
+      ingreso: ahora,
+      estado: "En recojo",
+      lavanderia: "", alertado: false,
+      historial: [{ estado: "En recojo", fecha: ahora }],
+      celularEntrega: cl?.celular || "",
+      direccionEntrega: cl?.direccion || "",
+      notasEntregaCliente: cl?.notasEntrega || "",
+    };
+    setPedidos(prev => [nuevo, ...prev]);
+    setForm(initialForm);
+    setVista(null);
+  };
+
+  // Flujo bloqueado: solo avanza al siguiente estado
+  const cambiarEstado = (id, lavanderiaAsignada, minutosLavanderia, costoLav) => {
+    setPedidos(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      const nuevoEstado = SIGUIENTE_ESTADO[c.estado];
+      if (!nuevoEstado) return c;
+      const ahora = Date.now();
+      const yaPageo = c.pago === "Efectivo" || c.pago === "Yape";
+      return {
+        ...c,
+        estado: nuevoEstado,
+        ...(lavanderiaAsignada ? { lavanderia: lavanderiaAsignada } : {}),
+        ...(minutosLavanderia ? { tiempoLavanderia: minutosLavanderia, inicioLavanderia: ahora } : {}),
+        ...(costoLav !== undefined ? { costoLavanderia: costoLav } : {}),
+        ...(nuevoEstado === "Entregado" ? { fechaFin: ahora } : {}),
+        ...(nuevoEstado === "Entregado" && yaPageo && !c.fechaPago ? { fechaPago: ahora } : {}),
+        historial: [...(c.historial || []), {
+          estado: nuevoEstado, fecha: ahora,
+          ...(lavanderiaAsignada ? { lavanderia: lavanderiaAsignada } : {})
+        }]
+      };
     }));
   };
 
-  const agregarClienteDirecto = (e) => {
-    e.preventDefault();
-    if (!formCli.nombre.trim()) return;
-    const nCli = { id: crypto.randomUUID(), ...formCli };
-    setDirectorio(prev => [nCli, ...prev]);
-    setVista(null);
-    setFormCli({ nombre: "", celular: "", direccion: "", referencia: "", mapsLink: "" });
-  };
+  const eliminarPedido = (id) => { setPedidos(prev => prev.filter(c => c.id !== id)); setVista(null); };
 
-  const resetForm = () => {
-    setForm({
-      clienteId: "", nombre: "", celular: "", direccion: "", referencia: "", mapsLink: "",
-      peso: "", costoLavanderia: "", montoCobrado: "", lavanderiaAsignada: lavanderias[0],
-      duracionEstimada: "120", notas: ""
-    });
-  };
-
-  // --- MEMOS / REPORTES / TIEMPO ---
-  const urgentes = useMemo(() => {
-    return pedidos.filter(p => {
-      if (p.estado !== "En lavandería" || !p.timestampLavanderia) return false;
-      const transcurrido = (new Date() - new Date(p.timestampLavanderia)) / 60000;
-      return transcurrido >= p.duracionEstimada;
-    });
-  }, [pedidos, tick]);
-
-  // Disparar alerta nativa PWA si hay prendas expiradas
-  useEffect(() => {
-    if (urgentes.length > 0 && "Notification" in window && Notification.permission === "granted") {
-      new Notification("⚠️ Alerta Lava Go!", {
-        body: `Hay ${urgentes.length} pedidos retrasados en lavandería.`,
-        tag: "retraso-lavago"
-      });
+  // ─── Directorio ─────────────────────────────────────────────
+  const guardarClienteDir = () => {
+    if (!clienteDir.nombre) return;
+    if (clienteDirActivo) {
+      setDirectorio(prev => prev.map(d => d.id === clienteDirActivo ? { ...d, ...clienteDir } : d));
+    } else {
+      setDirectorio(prev => [{ id: crypto.randomUUID(), ...clienteDir }, ...prev]);
     }
-  }, [urgentes]);
-
-  const pedidoSeleccionado = useMemo(() => pedidos.find(p => p.id === pedidoSelId), [pedidos, pedidoSelId]);
-
-  const reportesGlobales = useMemo(() => {
-    const hoyStr = new Date().toISOString().split("T")[0];
-    let ingresosHoy = 0, kilosHoy = 0, cuentasPorCobrar = 0, costoLavanderiaTotal = 0;
-
-    pedidos.forEach(p => {
-      const entregadoHoy = p.estado === "Entregado" && p.historial.some(h => h.estado === "Entregado" && h.fecha.startsWith(hoyStr));
-      if (entregadoHoy) {
-        ingresosHoy += p.montoCobrado;
-        kilosHoy += p.peso;
-        costoLavanderiaTotal += p.costoLavanderia;
-      }
-      if (p.estado !== "Entregado") {
-        cuentasPorCobrar += p.montoCobrado;
-      }
-    });
-
-    return { ingresosHoy, kilosHoy, cuentasPorCobrar, utilidadProyectada: ingresosHoy - costoLavanderiaTotal };
-  }, [pedidos]);
-
-  // --- ESTILOS REUTILIZABLES (MÁXIMO CONTRASTE SOLAR) ---
-  const inputStyle = {
-    width: "100%",
-    padding: "12px",
-    background: "#FFFFFF",
-    color: "#111827",
-    border: "2px solid #9CA3AF",
-    borderRadius: "10px",
-    fontSize: "16px",
-    boxSizing: "border-box",
-    marginBottom: "14px"
+    setClienteDir(initialClienteDir); setClienteDirActivo(null); setVista(null);
+  };
+  const eliminarClienteDir = (id) => { setDirectorio(prev => prev.filter(d => d.id !== id)); setVista(null); };
+  const abrirEditarCliente = (c) => {
+    setClienteDir({ nombre: c.nombre, celular: c.celular || "", direccion: c.direccion || "", notasEntrega: c.notasEntrega || "", coordenadas: c.coordenadas || null, mapsLink: c.mapsLink || "" });
+    setClienteDirActivo(c.id); setVista("nuevoCliente");
   };
 
-  const labelStyle = {
-    display: "block",
-    fontSize: "14px",
-    fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: "6px"
-  };
+  // ─── Cálculos memorizados ───────────────────────────────────
+  const hoy = useMemo(() => new Date().toDateString(), [tick]);
+  const ahora = Date.now();
+
+  const urgentes = useMemo(() => pedidos.filter(c => {
+    if (c.estado === "En lavandería" && c.inicioLavanderia && c.tiempoLavanderia) {
+      return Date.now() >= new Date(c.inicioLavanderia).getTime() + c.tiempoLavanderia * 60000;
+    }
+    return false;
+  }), [pedidos, tick]);
+
+  const stats = useMemo(() => ({
+    activos: pedidos.filter(c => c.estado !== "Entregado").length,
+    listos: pedidos.filter(c => c.estado === "Listo para entregar").length,
+    hoy: pedidos.filter(c => new Date(c.ingreso).toDateString() === hoy).length,
+    ingresosHoy: pedidos.filter(c => c.fechaPago && new Date(c.fechaPago).toDateString() === hoy).reduce((s, c) => s + Number(c.precio || 0), 0),
+  }), [pedidos, hoy]);
+
+  const grupos = useMemo(() => ({
+    activos:    pedidos.filter(c => c.estado !== "Entregado"),
+    recojo:     pedidos.filter(c => ["En recojo","Recogido"].includes(c.estado)),
+    lavanderia: pedidos.filter(c => c.estado === "En lavandería"),
+    listos:     pedidos.filter(c => c.estado === "Listo para entregar"),
+    entregados: pedidos.filter(c => c.estado === "Entregado"),
+  }), [pedidos]);
+
+  const pedidosFiltrados = grupos[filtro] || grupos.activos;
+
+  const directorioFiltrado = useMemo(() => directorio.filter(d =>
+    d.nombre.toLowerCase().includes(busquedaDir.toLowerCase()) ||
+    (d.celular || "").includes(busquedaDir) ||
+    (d.direccion || "").toLowerCase().includes(busquedaDir.toLowerCase())
+  ), [directorio, busquedaDir]);
+
+  const sw = useMemo(() => startOfWeek(new Date()), [hoy]);
+  const sm = useMemo(() => startOfMonth(new Date()), [hoy]);
+
+  const pedidosReporte = useMemo(() => pedidos.filter(c => {
+    const f = new Date(c.ingreso);
+    if (periodoReporte === "semana") return f >= sw;
+    if (periodoReporte === "mes") return f >= sm;
+    return new Date(c.ingreso).toDateString() === hoy;
+  }), [pedidos, periodoReporte, sw, sm, hoy]);
+
+  const reporte = useMemo(() => {
+    const cobrados = pedidosReporte.filter(c => c.pago === "Efectivo" || c.pago === "Yape");
+    const porCobrar = pedidos.filter(c => (!c.pago || c.pago === "No pagó") && c.estado !== "Entregado");
+    return {
+      total: pedidosReporte.length,
+      entregados: pedidosReporte.filter(c => c.estado === "Entregado").length,
+      ingresos: cobrados.reduce((s, c) => s + Number(c.precio || 0), 0),
+      ganancia: cobrados.reduce((s, c) => s + (Number(c.precio || 0) - (c.costoLavanderia != null ? c.costoLavanderia : c.kg * 3.5)), 0),
+      kg: pedidosReporte.reduce((s, c) => s + Number(c.kg || 0), 0),
+      clientesUnicos: [...new Set(pedidosReporte.map(c => c.nombre))].length,
+      porEstado: ESTADOS.reduce((acc, e) => { acc[e] = pedidosReporte.filter(c => c.estado === e).length; return acc; }, {}),
+      porCobrar: porCobrar.reduce((s, c) => s + Number(c.precio || 0), 0),
+      deudores: porCobrar,
+    };
+  }, [pedidosReporte, pedidos]);
+
+  const pedidoDetalle = pedidos.find(c => c.id === pedidoActivo);
+  const clienteDirDetalle = directorio.find(d => d.id === clienteDirActivo);
 
   return (
-    <div style={{ maxWidth: 480, margin: "0 auto", background: "#FFFFFF", color: "#111827", minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "sans-serif", paddingBottom: 80 }}>
-      
-      {/* HEADER DE LA APP */}
-      <header style={{ background: "#FFFFFF", borderBottom: "3px solid #D1D5DB", padding: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ background: "#16A34A", color: "#FFFFFF", padding: 8, borderRadius: 10 }}><Shirt size={24} strokeWidth={3} /></div>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: "#111827", letterSpacing: "-0.5px" }}>Lava Go!</h1>
-            <p style={{ fontSize: 12, margin: 0, color: "#374151", fontWeight: 600 }}>Operaciones en Campo</p>
-          </div>
+    <div style={{ minHeight: "100vh", background: "#0a0a0f", fontFamily: "'DM Sans','Segoe UI',sans-serif", color: "#e8e4dc", maxWidth: 480, margin: "0 auto", paddingBottom: 90 }}>
+
+      {/* Toast */}
+      {alertas.map((a, i) => (
+        <div key={i} onClick={() => setAlertas(p => p.filter((_,j) => j !== i))}
+          style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", width: "calc(100% - 32px)", maxWidth: 448, zIndex: 999, background: "#10b981", borderRadius: 14, padding: "14px 18px", boxShadow: "0 8px 32px rgba(16,185,129,0.5)", cursor: "pointer" }}>
+          <div style={{ fontSize: 11, letterSpacing: 2, color: "rgba(255,255,255,0.7)", marginBottom: 3 }}>RECORDATORIO</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{a.msg}</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 3 }}>Toca para cerrar</div>
         </div>
-        {urgentes.length > 0 && (
-          <div style={{ background: "#DC2626", color: "#FFFFFF", display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: "bold", animation: "pulse 1.5s infinite" }}>
-            <AlertCircle size={16} strokeWidth={2.5} /> <span>{urgentes.length} ALERTA</span>
-          </div>
-        )}
-      </header>
+      ))}
 
-      {/* RENDERIZADO DE VISTAS EMERGENTES (MODALES) */}
-      {vista === "crear-pedido" && (
-        <div style={{ padding: 20, background: "#FFFFFF", minHeight: "90vh" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Nuevo Pedido</h2>
-            <button onClick={() => { setVista(null); resetForm(); }} style={{ background: "#E5E7EB", border: "none", padding: "8px 16px", borderRadius: 8, fontWeight: "bold", color: "#111827" }}>Cerrar</button>
-          </div>
-          <form onSubmit={agregarPedido}>
-            <label style={labelStyle}>Nombre del Cliente *</label>
-            <input type="text" value={form.nombre} onChange={e => handleNombreChange(e.target.value)} style={inputStyle} placeholder="Escribe para buscar o agregar..." required list="clientes-lista" />
-            <datalist id="clientes-lista">
-              {directorio.map(d => <option key={d.id} value={d.nombre} />)}
-            </datalist>
-
-            <label style={labelStyle}>Celular</label>
-            <input type="tel" value={form.celular} onChange={e => setForm({ ...f => ({ ...f, celular: e.target.value }) })} style={inputStyle} placeholder="Ej. 987654321" />
-
-            <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Enlace de Ubicación Maps</label>
-                <input type="text" value={form.mapsLink} onChange={e => setForm({ ...f => ({ ...f, mapsLink: e.target.value }) })} style={inputStyle} placeholder="https://maps.google..." />
-              </div>
-              <button type="button" onClick={capturarUbicacion} style={{ marginBottom: 14, padding: "12px", background: "#2563EB", color: "#FFFFFF", border: "none", borderRadius: 10, fontWeight: "bold", display: "flex", alignItems: "center", gap: 5 }}><MapPin size={20} /> GPS</button>
+      {/* Header principal */}
+      {!vista && (
+        <div style={{ padding: "20px 16px 0", borderBottom: "0.5px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: -1, background: "linear-gradient(90deg, #10b981, #a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Lava Go!</div>
             </div>
-
-            <label style={labelStyle}>Dirección Física</label>
-            <input type="text" value={form.direccion} onChange={e => setForm({ ...f => ({ ...f, direccion: e.target.value }) })} style={inputStyle} placeholder="Av. Principal 123" />
-
-            <label style={labelStyle}>Referencia de Entrega</label>
-            <input type="text" value={form.referencia} onChange={e => setForm({ ...f => ({ ...f, referencia: e.target.value }) })} style={inputStyle} placeholder="Portón azul, frente al parque" />
-
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Peso Total (Kg)</label>
-                <input type="number" step="0.1" value={form.peso} onChange={e => setForm({ ...f => ({ ...f, peso: e.target.value }) })} style={inputStyle} placeholder="0.0" />
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 10, color: "#555", letterSpacing: 1, marginBottom: 2 }}>HOY COBRADO</div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: "#a78bfa", letterSpacing: -1, lineHeight: 1 }}>
+                S/. {stats.ingresosHoy.toFixed(2)}
               </div>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Costo Lavandería (S/)</label>
-                <input type="number" step="0.5" value={form.costoLavanderia} onChange={e => setForm({ ...f => ({ ...f, costoLavanderia: e.target.value }) })} style={inputStyle} placeholder="0.00" />
-              </div>
+              <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{stats.hoy} pedido{stats.hoy !== 1 ? "s" : ""}</div>
             </div>
+          </div>
 
-            <label style={labelStyle}>Monto Total a Cobrar al Cliente (S/) *</label>
-            <input type="number" step="0.5" value={form.montoCobrado} onChange={e => setForm({ ...f => ({ ...f, montoCobrado: e.target.value }) })} style={inputStyle} placeholder="0.00" required />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+            {[
+              { label: "Activos", val: stats.activos, color: "#3b82f6" },
+              { label: "Listos", val: stats.listos, color: "#10b981" },
+              { label: "Urgentes", val: urgentes.length, color: urgentes.length > 0 ? "#ef4444" : "#333" },
+            ].map((s, i) => (
+              <div key={i} style={{ background: i === 2 && s.val > 0 ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${s.color}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.val}</div>
+                <div style={{ fontSize: 10, color: "#555", letterSpacing: 1 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
 
-            <label style={labelStyle}>Lavandería de Destino</label>
-            <select value={form.lavanderiaAsignada} onChange={e => setForm({ ...f => ({ ...f, lavanderiaAsignada: e.target.value }) })} style={inputStyle}>
-              {lavanderias.map((l, idx) => <option key={idx} value={l}>{l}</option>)}
-            </select>
-
-            <label style={labelStyle}>Tiempo Máximo de Entrega (Minutos)</label>
-            <select value={form.duracionEstimada} onChange={e => setForm({ ...f => ({ ...f, duracionEstimada: e.target.value }) })} style={inputStyle}>
-              <option value="60">1 Hora (Express)</option>
-              <option value="120">2 Horas (Estándar)</option>
-              <option value="180">3 Horas</option>
-              <option value="1440">24 Horas</option>
-            </select>
-
-            <label style={labelStyle}>Notas Especiales / Observaciones de Ropa</label>
-            <textarea value={form.notas} onChange={e => setForm({ ...f => ({ ...f, notas: e.target.value }) })} style={{ ...inputStyle, height: 80, resize: "none" }} placeholder="Prendas delicadas, edredón manchado, etc." />
-
-            <button type="submit" style={{ width: "100%", padding: 16, background: "#16A34A", color: "#FFFFFF", border: "none", borderRadius: 12, fontSize: 16, fontWeight: "bold", marginTop: 10 }}>Crear e Iniciar Ruta</button>
-          </form>
         </div>
       )}
 
-      {vista === "ver-pedido" && pedidoSeleccionado && (
-        <div style={{ padding: 20, background: "#FFFFFF", minHeight: "90vh" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, borderBottom: "2px solid #E5E7EB", paddingBottom: 10 }}>
-            <div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>Ficha de Pedido</h2>
-              <span style={{ fontSize: 11, color: "#4B5563" }}>ID: {pedidoSeleccionado.id.substring(0,8)}</span>
+      {/* Header vistas internas */}
+      {vista && (
+        <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={() => { setVista(null); setMostrarSugerencias(false); setSugerencias([]); setMinutosTemp(""); }}
+            style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: "#fff", fontSize: 18, flexShrink: 0 }}>←</button>
+          <div style={{ fontSize: 17, fontWeight: 600 }}>
+            {vista === "nuevo" && "Nuevo pedido"}
+            {vista === "detalle" && pedidoDetalle?.nombre}
+            {vista === "nuevoCliente" && (clienteDirActivo ? "Editar cliente" : "Nuevo cliente")}
+            {vista === "detalleCliente" && clienteDirDetalle?.nombre}
+            {vista === "gestionLavanderias" && "Gestionar lavanderías"}
+          </div>
+        </div>
+      )}
+
+      {/* Sección URGENTE */}
+      {!vista && tab === "dashboard" && urgentes.length > 0 && (
+        <div style={{ margin: "12px 16px 0", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ padding: "10px 14px 6px", display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444", boxShadow: "0 0 6px #ef4444" }} />
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: "#ef4444" }}>URGENTE — {urgentes.length} pedido{urgentes.length > 1 ? "s" : ""}</div>
+          </div>
+          {urgentes.map(c => (
+            <div key={c.id} onClick={() => { setPedidoActivo(c.id); setVista("detalle"); }}
+              style={{ padding: "8px 14px 10px", borderTop: "0.5px solid rgba(239,68,68,0.15)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{c.nombre}</div>
+                <div style={{ fontSize: 11, color: "#ef4444", marginTop: 1 }}>¡Tiempo vencido — ir a recoger!</div>
+              </div>
+              <span style={{ fontSize: 18, color: "#ef4444" }}>→</span>
             </div>
-            <button onClick={() => setVista(null)} style={{ background: "#E5E7EB", border: "none", padding: "8px 16px", borderRadius: 8, fontWeight: "bold" }}>Regresar</button>
+          ))}
+        </div>
+      )}
+
+      {/* ══ DASHBOARD ══ */}
+      {!vista && tab === "dashboard" && (
+        <div style={{ padding: "12px 16px 16px" }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none", msOverflowStyle: "none" }}>
+            {[
+              { key: "recojo",     icon: <Bike size={13} />,          label: "Recojo",     count: grupos.recojo.length },
+              { key: "lavanderia", icon: <WashingMachine size={13} />, label: "Lavandería", count: grupos.lavanderia.length },
+              { key: "listos",     icon: <PackageCheck size={13} />,   label: "Listos",     count: grupos.listos.length },
+              { key: "entregados", icon: <Package size={13} />,        label: "Historial",  count: grupos.entregados.length },
+            ].map(f => {
+              const activo = filtro === f.key;
+              return (
+                <button key={f.key} onClick={() => setFiltro(f.key)}
+                  style={{ background: activo ? "#10b981" : "rgba(255,255,255,0.04)", border: `0.5px solid ${activo ? "#10b981" : "rgba(255,255,255,0.08)"}`, borderRadius: 10, padding: "6px 10px", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                  <span style={{ fontSize: 13 }}>{f.icon}</span>
+                  <span style={{ fontSize: 12, color: activo ? "#fff" : "#888", fontWeight: activo ? 600 : 400 }}>{f.label}</span>
+                  {f.count > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: activo ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.08)", color: activo ? "#fff" : "#666", padding: "1px 6px", borderRadius: 8 }}>{f.count}</span>}
+                </button>
+              );
+            })}
           </div>
 
-          <div style={{ background: "#F3F4F6", border: "2px solid #D1D5DB", padding: 16, borderRadius: 12, marginBottom: 16 }}>
-            <h3 style={{ margin: "0 0 10px 0", color: "#111827", display: "flex", alignItems: "center", gap: 8 }}><User size={20} /> {pedidoSeleccionado.nombre}</h3>
-            <p style={{ margin: "4px 0", fontSize: 14 }}><b>Celular:</b> {pedidoSeleccionado.celular || "No asignado"}</p>
-            <p style={{ margin: "4px 0", fontSize: 14 }}><b>Dirección:</b> {pedidoSeleccionado.direccion || "No asignado"}</p>
-            <p style={{ margin: "4px 0", fontSize: 14 }}><b>Referencia:</b> {pedidoSeleccionado.referencia || "No asignado"}</p>
-            {pedidoSeleccionado.mapsLink && (
-              <a href={pedidoSeleccionado.mapsLink} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#2563EB", color: "#FFFFFF", padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: "bold", textDecoration: "none", marginTop: 10 }}>
-                <Map size={16} /> Ver en Google Maps (Ruta GPS)
-              </a>
-            )}
+          {filtro === "lavanderia" ? null : pedidosFiltrados.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "60px 0", color: "#444" }}>
+              <div style={{ marginBottom: 12, display:"flex", justifyContent:"center" }}><Shirt size={40} color="#444" /></div>
+              <div style={{ fontSize: 14 }}>Sin pedidos aquí</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {pedidosFiltrados.map(c => {
+                const esUrgente = urgentes.some(u => u.id === c.id);
+                return (
+                  <div key={c.id} onClick={() => { setPedidoActivo(c.id); setVista("detalle"); }}
+                    style={{ background: esUrgente ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${esUrgente ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: "16px 14px", cursor: "pointer" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                          <span style={{ fontSize: 18 }}>{ESTADO_ICON[c.estado]}</span>
+                          <div style={{ fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nombre}</div>
+                        </div>
+                        <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
+                          {c.lavanderia || <span style={{ color: "#e879f9" }}>⚡ Sin lavandería</span>}
+                        </div>
+                        {c.direccionEntrega && (
+                          <div style={{ fontSize: 13, color: "#a78bfa", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={13} color="#a78bfa" style={{marginRight:4}} />{c.direccionEntrega}</div>
+                        )}
+                        <div style={{ display: "flex", gap: 12, fontSize: 14, color: "#666" }}>
+                          <span>{c.kg} kg</span>
+                          <span style={{ color: "#a78bfa", fontWeight: 700 }}>S/. {c.precio}</span>
+                          <span>{timeAgo(c.ingreso)}</span>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 11, letterSpacing: 0.5, fontWeight: 700, color: ESTADO_COLORS[c.estado], background: `${ESTADO_COLORS[c.estado]}15`, padding: "6px 12px", borderRadius: 8, whiteSpace: "nowrap", marginLeft: 10, flexShrink: 0 }}>
+                        {c.estado.toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ DIRECTORIO ══ */}
+      {!vista && tab === "directorio" && (
+        <div style={{ padding: "12px 16px 16px" }}>
+          <input type="text" placeholder="🔍  Nombre, celular o dirección..."
+            value={busquedaDir} onChange={e => setBusquedaDir(e.target.value)}
+            style={{ ...inputStyle, marginBottom: 12 }} />
+          {directorioFiltrado.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "60px 0", color: "#444" }}>
+              <div style={{ marginBottom: 12, display:"flex", justifyContent:"center" }}><User size={40} color="#444" /></div>
+              <div style={{ fontSize: 14 }}>{directorio.length === 0 ? "Sin clientes aún" : "Sin resultados"}</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {directorioFiltrado.map(d => {
+                const activos = pedidos.filter(p => (p.clienteId === String(d.id) || p.nombre === d.nombre) && p.estado !== "Entregado").length;
+                const total = pedidos.filter(p => p.clienteId === String(d.id) || p.nombre === d.nombre).length;
+                return (
+                  <div key={d.id} onClick={() => { setClienteDirActivo(d.id); setVista("detalleCliente"); }}
+                    style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                          <div style={{ fontSize: 15, fontWeight: 600 }}>{d.nombre}</div>
+                          {activos > 0 && <span style={{ fontSize: 10, background: "rgba(16,185,129,0.2)", color: "#10b981", padding: "2px 7px", borderRadius: 6, fontWeight: 700 }}>{activos} activo{activos > 1 ? "s" : ""}</span>}
+                        </div>
+                        {d.celular && <div style={{ fontSize: 12, color: "#a78bfa", marginBottom: 2 }}><Phone size={12} color="#a78bfa" style={{marginRight:4}} />{d.celular}</div>}
+                        {d.direccion && <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={12} color="#555" style={{marginRight:4}} />{d.direccion}</div>}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#444", marginLeft: 8, flexShrink: 0 }}>{total} pedido{total !== 1 ? "s" : ""}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ REPORTES ══ */}
+      {!vista && tab === "reportes" && (
+        <div style={{ padding: "12px 16px 16px" }}>
+
+          {/* Selector período */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+            {[{ key: "hoy", label: "Hoy" }, { key: "semana", label: "Esta semana" }, { key: "mes", label: "Este mes" }].map(p => (
+              <button key={p.key} onClick={() => setPeriodoReporte(p.key)}
+                style={{ flex: 1, background: periodoReporte === p.key ? "#10b981" : "rgba(255,255,255,0.04)", border: `0.5px solid ${periodoReporte === p.key ? "#10b981" : "rgba(255,255,255,0.08)"}`, borderRadius: 10, padding: "8px 4px", cursor: "pointer", fontSize: 12, fontWeight: periodoReporte === p.key ? 700 : 400, color: periodoReporte === p.key ? "#fff" : "#777" }}>
+                {p.label}
+              </button>
+            ))}
           </div>
 
-          <div style={{ background: "#F3F4F6", border: "2px solid #D1D5DB", padding: 16, borderRadius: 12, marginBottom: 16 }}>
-            <h4 style={{ margin: "0 0 8px 0", fontSize: 15 }}>Detalles de Carga y Caja</h4>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 14 }}><span>Peso:</span> <b>{pedidoSeleccionado.peso} Kg</b></div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 14 }}><span>Costo Lavandería:</span> <b>S/ {pedidoSeleccionado.costoLavanderia.toFixed(2)}</b></div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 14 }}><span>Monto Cobrado:</span> <b style={{ color: "#16A34A", fontSize: 16 }}>S/ {pedidoSeleccionado.montoCobrado.toFixed(2)}</b></div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}><span>Lavandería:</span> <b>{pedidoSeleccionado.lavanderiaAsignada}</b></div>
-            {pedidoSeleccionado.notas && <div style={{ marginTop: 10, padding: 8, background: "#FFFFFF", borderLeft: "4px solid #D97706", fontSize: 13, color: "#374151" }}><b>Notas:</b> {pedidoSeleccionado.notas}</div>}
+          {/* GANANCIA — protagonista full width */}
+          <div style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.06))", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 16, padding: "20px 18px", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, color: "#10b981", letterSpacing: 1.5, marginBottom: 6 }}>TU GANANCIA</div>
+            <div style={{ fontSize: 44, fontWeight: 900, color: "#10b981", letterSpacing: -2, lineHeight: 1 }}>S/. {reporte.ganancia.toFixed(2)}</div>
+            <div style={{ fontSize: 12, color: "#555", marginTop: 8 }}>{reporte.kg.toFixed(1)} kg lavados · {reporte.entregados} entregado{reporte.entregados !== 1 ? "s" : ""}</div>
           </div>
 
-          <div style={{ background: "#F3F4F6", border: "2px solid #D1D5DB", padding: 16, borderRadius: 12 }}>
-            <h4 style={{ margin: "0 0 10px 0", fontSize: 15 }}>Historial de Trazabilidad</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {pedidoSeleccionado.historial.map((h, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <div style={{ background: ESTADO_COLORS[h.estado], color: "#FFFFFF", padding: 4, borderRadius: "50%" }}>{ESTADO_ICONS[h.estado]}</div>
+          {/* COBRADO — secundario */}
+          <div style={{ background: "rgba(167,139,250,0.07)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "14px 16px", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, color: "#a78bfa", letterSpacing: 1, marginBottom: 4 }}>COBRADO</div>
+            <div style={{ fontSize: 30, fontWeight: 800, color: "#a78bfa", letterSpacing: -1 }}>S/. {reporte.ingresos.toFixed(2)}</div>
+            <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{reporte.total} pedido{reporte.total !== 1 ? "s" : ""}</div>
+          </div>
+
+          {/* POR COBRAR — arriba, visible siempre */}
+          {reporte.deudores.length > 0 && (
+            <div style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 14, padding: "14px 16px", marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontSize: 10, letterSpacing: 1, color: "#ef4444" }}>⚠️ POR COBRAR</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: "#ef4444", letterSpacing: -1 }}>S/. {reporte.porCobrar.toFixed(2)}</div>
+              </div>
+              {reporte.deudores.map((p, i) => (
+                <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderTop: i === 0 ? "0.5px solid rgba(239,68,68,0.15)" : "0.5px solid rgba(239,68,68,0.1)", cursor: "pointer" }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: "bold" }}>{h.estado}</div>
-                    <div style={{ fontSize: 11, color: "#4B5563" }}>{new Date(h.fecha).toLocaleTimeString()} · {new Date(h.fecha).toLocaleDateString()}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{p.nombre}</div>
+                    <div style={{ fontSize: 11, color: "#666" }}>{p.estado}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#ef4444" }}>S/. {p.precio}</div>
+                    <span style={{ fontSize: 14, color: "#ef4444" }}>→</span>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {vista === "crear-cliente" && (
-        <div style={{ padding: 20, background: "#FFFFFF", minHeight: "90vh" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Registrar Cliente</h2>
-            <button onClick={() => setVista(null)} style={{ background: "#E5E7EB", border: "none", padding: "8px 16px", borderRadius: 8, fontWeight: "bold" }}>Cerrar</button>
-          </div>
-          <form onSubmit={agregarClienteDirecto}>
-            <label style={labelStyle}>Nombre Completo *</label>
-            <input type="text" value={formCli.nombre} onChange={e => setFormCli({ ...formCli, nombre: e.target.value })} style={inputStyle} placeholder="Ej. Juan Pérez" required />
-
-            <label style={labelStyle}>Número de Celular *</label>
-            <input type="tel" value={formCli.celular} onChange={e => setFormCli({ ...formCli, celular: e.target.value })} style={inputStyle} placeholder="Ej. 999888777" required />
-
-            <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Ubicación GPS Link</label>
-                <input type="text" value={formCli.mapsLink} onChange={e => setFormCli({ ...formCli, mapsLink: e.target.value })} style={inputStyle} placeholder="https://maps..." />
-              </div>
-              <button type="button" onClick={capturarUbicacion} style={{ marginBottom: 14, padding: "12px", background: "#2563EB", color: "#FFFFFF", border: "none", borderRadius: 10, fontWeight: "bold" }}><MapPin size={20} /></button>
-            </div>
-
-            <label style={labelStyle}>Dirección Residencia</label>
-            <input type="text" value={formCli.direccion} onChange={e => setFormCli({ ...formCli, direccion: e.target.value })} style={inputStyle} placeholder="Calle Los Almendros 456" />
-
-            <label style={labelStyle}>Referencia</label>
-            <input type="text" value={formCli.referencia} onChange={e => setFormCli({ ...formCli, referencia: e.target.value })} style={inputStyle} placeholder="Frente a la bodega Don Pepe" />
-
-            <button type="submit" style={{ width: "100%", padding: 16, background: "#16A34A", color: "#FFFFFF", border: "none", borderRadius: 12, fontSize: 16, fontWeight: "bold", marginTop: 10 }}>Guardar en Directorio</button>
-          </form>
-        </div>
-      )}
-
-      {/* RENDERIZADO DE PESTAÑAS PRINCIPALES DE NAVEGACIÓN */}
-      {!vista && (
-        <main style={{ padding: 16, flex: 1 }}>
-          
-          {/* TAB 1: PEDIDOS / DASHBOARD */}
-          {tab === "dashboard" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "#111827" }}>Monitoreo de Entregas</h2>
-                <button onClick={() => setVista("crear-pedido")} style={{ background: "#16A34A", color: "#FFFFFF", border: "none", padding: "10px 16px", borderRadius: 10, fontWeight: "bold", display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}><Plus size={18} strokeWidth={3} /> Ruta</button>
-              </div>
-
-              {pedidos.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "40px 20px", background: "#F3F4F6", borderRadius: 16, border: "2px dashed #9CA3AF", marginTop: 10 }}>
-                  <ClipboardList size={40} style={{ color: "#6B7280", marginBottom: 10 }} />
-                  <p style={{ margin: 0, fontWeight: "bold", color: "#374151" }}>No hay pedidos activos en la ruta de hoy.</p>
+          {/* POR ESTADO — barras más gruesas */}
+          <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, letterSpacing: 1, color: "#555", padding: "12px 14px 6px" }}>POR ESTADO</div>
+            {ESTADOS.map((e, i) => {
+              const n = reporte.porEstado[e] || 0;
+              const pct = reporte.total > 0 ? (n / reporte.total) * 100 : 0;
+              return (
+                <div key={e} style={{ padding: "7px 14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span>{ESTADO_ICON[e]}</span>
+                      <span style={{ fontSize: 12, color: "#888" }}>{e}</span>
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: ESTADO_COLORS[e] }}>{n}</span>
+                  </div>
+                  <div style={{ height: 7, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: ESTADO_COLORS[e], borderRadius: 4 }} />
+                  </div>
                 </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {pedidos.map(p => {
-                    // CORREGIDO: Búsqueda exacta de cliente por ID String para evitar NaNs
-                    const cl = directorio.find(d => String(d.id) === String(p.clienteId));
-                    const esExpirado = p.estado === "En lavandería" && p.timestampLavanderia && (((new Date() - new Date(p.timestampLavanderia)) / 60000) >= p.duracionEstimada);
-                    
+              );
+            })}
+          </div>
+
+          {/* ÚLTIMOS PEDIDOS — nombre + precio + estado */}
+          {pedidosReporte.length > 0 && (
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ fontSize: 10, letterSpacing: 1, color: "#555", padding: "12px 14px 6px" }}>ÚLTIMOS PEDIDOS</div>
+              {pedidosReporte.slice(0, 8).map((p, i) => (
+                <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 14px", borderTop: "0.5px solid rgba(255,255,255,0.04)", cursor: "pointer" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</div>
+                    <div style={{ fontSize: 10, color: "#555", marginTop: 1 }}>{formatDate(p.ingreso)} · {p.kg} kg</div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#a78bfa" }}>S/. {p.precio}</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: ESTADO_COLORS[p.estado] }}>{p.estado}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* ══ NUEVO PEDIDO ══ */}
+      {vista === "nuevo" && (
+        <div style={{ padding: "12px 16px 80px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+            {/* Autocomplete nombre */}
+            <div style={{ position: "relative" }}>
+              <label style={labelStyle}>NOMBRE DEL CLIENTE</label>
+              <div style={{ position: "relative" }}>
+                <input ref={nombreInputRef} type="text" placeholder="Escribe el nombre..." value={form.nombre} autoComplete="off"
+                  onChange={e => {
+                    const val = e.target.value;
+                    setForm(p => ({ ...p, nombre: val, clienteId: "" }));
+                    if (val.trim().length >= 1) {
+                      const m = directorio.filter(d => d.nombre.toLowerCase().includes(val.toLowerCase()));
+                      setSugerencias(m); setMostrarSugerencias(m.length > 0);
+                    } else { setSugerencias([]); setMostrarSugerencias(false); }
+                  }}
+                  onBlur={() => setTimeout(() => setMostrarSugerencias(false), 150)}
+                  onFocus={() => { if (form.nombre.trim().length >= 1 && sugerencias.length > 0) setMostrarSugerencias(true); }}
+                  style={{ ...inputStyle, borderColor: form.clienteId ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.1)", paddingRight: form.clienteId ? "40px" : "14px" }} />
+                {form.clienteId && (
+                  <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#888" }}
+                    onClick={() => { setForm(p => ({ ...p, clienteId: "", nombre: "" })); setSugerencias([]); setMostrarSugerencias(false); setTimeout(() => nombreInputRef.current?.focus(), 50); }}>✕</div>
+                )}
+              </div>
+
+              {mostrarSugerencias && sugerencias.length > 0 && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: "#131320", border: "0.5px solid rgba(167,139,250,0.35)", borderRadius: "0 0 12px 12px", overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,0.6)" }}>
+                  <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", padding: "8px 14px 4px", borderBottom: "0.5px solid rgba(255,255,255,0.05)" }}>CLIENTES REGISTRADOS</div>
+                  {sugerencias.map((d, i) => {
+                    const q = form.nombre.toLowerCase(), n = d.nombre, idx = n.toLowerCase().indexOf(q);
                     return (
-                      <div key={p.id} style={{ background: esExpirado ? "#FEF3C7" : "#F3F4F6", border: esExpirado ? "2px solid #D97706" : "2px solid #D1D5DB", borderRadius: 16, padding: 16, position: "relative" }}>
-                        
-                        {/* Indicador de Estado Superior Derecho */}
-                        <div style={{ position: "absolute", top: 14, right: 14, background: ESTADO_COLORS[p.estado], color: "#FFFFFF", padding: "4px 10px", borderRadius: 12, fontSize: 11, fontWeight: "bold", display: "flex", alignItems: "center", gap: 4 }}>
-                          {ESTADO_ICONS[p.estado]} {p.estado.toUpperCase()}
-                        </div>
-
-                        <h3 style={{ margin: "0 0 4px 0", fontSize: 17, fontWeight: 800, paddingRight: 110, color: "#111827" }}>{p.nombre}</h3>
-                        <p style={{ margin: "0 0 10px 0", fontSize: 13, color: "#374151", fontWeight: 600 }}>📍 {p.direccion || "Dirección no especificada"}</p>
-                        
-                        <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                          <span style={{ fontSize: 12, background: "#FFFFFF", border: "1px solid #9CA3AF", padding: "3px 8px", borderRadius: 6, fontWeight: "bold" }}>📦 {p.peso} Kg</span>
-                          <span style={{ fontSize: 12, background: "#FFFFFF", border: "1px solid #9CA3AF", padding: "3px 8px", borderRadius: 6, fontWeight: "bold", color: "#16A34A" }}>💰 S/ {p.montoCobrado.toFixed(2)}</span>
-                        </div>
-
-                        {esExpirado && (
-                          <div style={{ background: "#F59E0B", color: "#FFFFFF", padding: 8, borderRadius: 8, display: "flex", alignItems: "center", gap: 6, marginBottom: 12, fontSize: 12, fontWeight: "bold" }}>
-                            <Timer size={16} strokeWidth={2.5} /> Ropa lista en {p.lavanderiaAsignada}. ¡Ir a recoger!
+                      <div key={d.id}
+                        onMouseDown={() => { setForm(p => ({ ...p, nombre: d.nombre, clienteId: String(d.id) })); setSugerencias([]); setMostrarSugerencias(false); }}
+                        style={{ padding: "10px 14px", cursor: "pointer", borderBottom: i < sugerencias.length - 1 ? "0.5px solid rgba(255,255,255,0.04)" : "none", display: "flex", alignItems: "center", gap: 10 }}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(167,139,250,0.1)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><User size={14} color="#a78bfa" /></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#e8e4dc" }}>
+                            {idx === -1 ? n : <>{n.slice(0,idx)}<span style={{ color: "#a78bfa", background: "rgba(167,139,250,0.15)", borderRadius: 3, padding: "0 1px" }}>{n.slice(idx, idx+q.length)}</span>{n.slice(idx+q.length)}</>}
                           </div>
-                        )}
-
-                        {/* Botonera de Acción en Ruta */}
-                        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                          <button onClick={() => { setPedidoSelId(p.id); setVista("ver-pedido"); }} style={{ flex: 1, background: "#FFFFFF", border: "2px solid #9CA3AF", padding: "10px", borderRadius: 10, fontWeight: "bold", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, color: "#111827" }}><FileText size={16} /> Detalles</button>
-                          {p.celular && (
-                            <a href={`tel:${p.celular}`} style={{ background: "#FFFFFF", border: "2px solid #9CA3AF", padding: "10px", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#2563EB" }}><Phone size={18} strokeWidth={2.5} /></a>
-                          )}
-                          {p.mapsLink && (
-                            <a href={p.mapsLink} target="_blank" rel="noreferrer" style={{ background: "#FFFFFF", border: "2px solid #9CA3AF", padding: "10px", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#16A34A" }}><Map size={18} strokeWidth={2.5} /></a>
-                          )}
+                          <div style={{ fontSize: 11, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[d.celular, d.direccion].filter(Boolean).join(" · ") || "Sin datos adicionales"}</div>
                         </div>
-
-                        {/* Gran Botón de Siguiente Estado */}
-                        {SIGUIENTE_ESTADO[p.estado] && (
-                          <button onClick={() => avanzarEstado(p.id)} style={{ width: "100%", background: ESTADO_COLORS[p.estado], color: "#FFFFFF", border: "none", padding: "14px", borderRadius: 12, fontWeight: "bold", fontSize: 14, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer" }}>
-                            Marcar como: "{SIGUIENTE_ESTADO[p.estado]}" &rarr;
-                          </button>
-                        )}
                       </div>
                     );
                   })}
                 </div>
               )}
+
+              {form.clienteId && (() => {
+                const cl = directorio.find(d => d.id === parseInt(form.clienteId));
+                if (!cl) return null;
+                const mapsUrl = cl.coordenadas
+                  ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${cl.coordenadas.lat},${cl.coordenadas.lng}&travelmode=motorcycle`
+                  : cl.mapsLink
+                  ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.mapsLink)}&travelmode=motorcycle`
+                  : cl.direccion
+                  ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.direccion + " Pichanaki Peru")}&travelmode=motorcycle`
+                  : null;
+                return (
+                  <div style={{ marginTop: 8, background: "rgba(167,139,250,0.08)", border: "0.5px solid rgba(167,139,250,0.25)", borderRadius: 10, padding: "10px 14px" }}>
+                    <div style={{ fontSize: 10, color: "#a78bfa", letterSpacing: 1, marginBottom: 8 }}>CLIENTE VINCULADO ✓</div>
+                    {cl.celular && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 4 }}><Phone size={12} color="#c4b5fd" style={{marginRight:4}} />{cl.celular}</div>}
+                    {cl.direccion && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 4 }}><MapPin size={12} color="#c4b5fd" style={{marginRight:4}} />{cl.direccion}</div>}
+                    {cl.notasEntrega && <div style={{ fontSize: 11, color: "#888", marginBottom: 8 }}><FileText size={12} color="#888" style={{marginRight:4}} />{cl.notasEntrega}</div>}
+                    {mapsUrl && (
+                      <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#3b82f6", color: "#fff", fontSize: 15, fontWeight: 700, padding: "14px 18px", borderRadius: 10, textDecoration: "none", marginTop: 6 }}>
+                        🗺 Ir en moto al cliente
+                      </a>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {[
+              { label: "KILOS DE ROPA", key: "kg", type: "number", placeholder: "Ej: 4.5" },
+              { label: "PRECIO COBRADO (S/.)", key: "precio", type: "number", placeholder: "Auto: kg × 5" },
+              { label: "NOTAS DEL PEDIDO", key: "notas", type: "text", placeholder: "Ropa delicada, instrucciones..." },
+            ].map(f => (
+              <div key={f.key}>
+                <label style={labelStyle}>{f.label}</label>
+                <input type={f.type} placeholder={f.placeholder} value={form[f.key]}
+                  onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} style={inputStyle} />
+              </div>
+            ))}
+
+            <div style={{ background: "rgba(233,121,249,0.06)", border: "0.5px solid rgba(233,121,249,0.2)", borderRadius: 10, padding: "12px 14px" }}>
+              <div style={{ fontSize: 13, color: "#e879f9", fontWeight: 600 }}>🚴 Lavandería se asigna después del recojo</div>
+              <div style={{ fontSize: 11, color: "#777", marginTop: 3 }}>Primero recoge, luego eliges según disponibilidad</div>
+            </div>
+
+            {form.kg && parseFloat(form.kg) > 0 && (
+              <div style={{ background: "rgba(16,185,129,0.08)", border: "0.5px solid rgba(16,185,129,0.2)", borderRadius: 10, padding: "12px 14px" }}>
+                <div style={{ fontSize: 11, color: "#10b981", marginBottom: 6, letterSpacing: 1 }}>RESUMEN</div>
+                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{form.kg} kg × S/. 5.00 = S/. {(parseFloat(form.kg) * 5).toFixed(2)}</div>
+                <div style={{ fontSize: 12, color: "#555" }}>Costo ~S/. {(parseFloat(form.kg) * 3.5).toFixed(2)} · Ganancia <span style={{ color: "#10b981", fontWeight: 600 }}>S/. {(parseFloat(form.kg) * 1.5).toFixed(2)}</span></div>
+              </div>
+            )}
+
+            <button onClick={agregarPedido} disabled={!form.nombre || !form.kg}
+              style={{ background: form.nombre && form.kg ? "#10b981" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 14, padding: "18px", color: form.nombre && form.kg ? "#fff" : "#444", fontSize: 16, fontWeight: 700, cursor: form.nombre && form.kg ? "pointer" : "default", boxShadow: form.nombre && form.kg ? "0 4px 24px rgba(16,185,129,0.4)" : "none", marginTop: 4 }}>
+              🛵 Iniciar recojo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══ DETALLE PEDIDO ══ */}
+      {vista === "detalle" && pedidoDetalle && (
+        <div style={{ padding: "12px 16px 80px" }}>
+
+          {/* Info principal */}
+          <div style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
+            {[
+              { label: "Estado", val: <span style={{ color: ESTADO_COLORS[pedidoDetalle.estado], fontWeight: 700 }}>{ESTADO_ICON[pedidoDetalle.estado]} {pedidoDetalle.estado}</span> },
+              { label: "Lavandería", val: pedidoDetalle.lavanderia || <span style={{ color: "#e879f9" }}>Sin asignar</span> },
+              { label: "Kilos", val: `${pedidoDetalle.kg} kg` },
+              { label: "Cobrado", val: <span style={{ color: "#a78bfa", fontWeight: 700 }}>S/. {pedidoDetalle.precio}</span> },
+              { label: "Costo lav.", val: (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ color: "#ef4444" }}>S/. {(pedidoDetalle.costoLavanderia ?? (pedidoDetalle.kg * 3.5)).toFixed(2)}</span>
+                  <input type="number" step="0.5" placeholder="Editar"
+                    value={costoLavTemp}
+                    onChange={e => setCostoLavTemp(e.target.value)}
+                    onBlur={() => {
+                      if (costoLavTemp) {
+                        setPedidos(prev => prev.map(c => c.id === pedidoDetalle.id ? { ...c, costoLavanderia: parseFloat(costoLavTemp) } : c));
+                        setCostoLavTemp("");
+                      }
+                    }}
+                    style={{ width: 70, background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "2px 6px", color: "#fff", fontSize: 11 }} />
+                </div>
+              )},
+              { label: "Ganancia real", val: <span style={{ color: "#10b981", fontWeight: 700 }}>S/. {(pedidoDetalle.precio - (pedidoDetalle.costoLavanderia ?? (pedidoDetalle.kg * 3.5))).toFixed(2)}</span> },
+              { label: "Inicio", val: `${formatDate(pedidoDetalle.ingreso)} ${formatTime(pedidoDetalle.ingreso)}` },
+              ...(pedidoDetalle.fechaFin ? [{ label: "Fin", val: `${formatDate(pedidoDetalle.fechaFin)} ${formatTime(pedidoDetalle.fechaFin)}` }] : []),
+              ...(pedidoDetalle.notas ? [{ label: "Notas", val: pedidoDetalle.notas }] : []),
+            ].map((r, i, arr) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < arr.length - 1 ? "0.5px solid rgba(255,255,255,0.04)" : "none" }}>
+                <span style={{ fontSize: 12, color: "#555" }}>{r.label}</span>
+                <span style={{ fontSize: 13, textAlign: "right", maxWidth: "60%" }}>{r.val}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Pago — bloque full-width fuera de tabla */}
+          <div style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, letterSpacing: 1, color: "#555", marginBottom: 10 }}>PAGO</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["Efectivo","Yape","No pagó"].map(op => {
+                const activo = (pedidoDetalle.pago || "No pagó") === op;
+                const color = op === "Efectivo" ? "#10b981" : op === "Yape" ? "#a78bfa" : "#ef4444";
+                return (
+                  <button key={op}
+                    onClick={() => {
+                      if (activo) return;
+                      setModal({
+                        titulo: `¿Confirmar pago en ${op}?`,
+                        msg: op !== "No pagó" ? `Se registrará el pago a las ${formatTime(Date.now())}` : "Se marcará como sin pago",
+                        onConfirm: () => {
+                          const ahora = Date.now();
+                          setPedidos(prev => prev.map(c => c.id === pedidoDetalle.id ? {
+                            ...c, pago: op,
+                            ...(op !== "No pagó" ? { fechaPago: ahora } : { fechaPago: null })
+                          } : c));
+                        }
+                      });
+                    }}
+                    style={{ flex: 1, minHeight: 52, fontSize: 15, fontWeight: 700, borderRadius: 12, border: `1.5px solid ${activo ? color : "rgba(255,255,255,0.1)"}`, background: activo ? `${color}22` : "transparent", color: activo ? color : "#555", cursor: "pointer" }}>
+                    {op === "Efectivo" ? "💵 Efectivo" : op === "Yape" ? "📲 Yape" : "❌ No pagó"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Datos de entrega */}
+          {(pedidoDetalle.celularEntrega || pedidoDetalle.direccionEntrega || pedidoDetalle.notasEntregaCliente) && (
+            <div style={{ background: "rgba(167,139,250,0.06)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
+              <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", marginBottom: 10 }}>DATOS DE ENTREGA</div>
+              {pedidoDetalle.celularEntrega && (() => {
+                const num = pedidoDetalle.celularEntrega.replace(/\D/g, "");
+                const wa = `https://wa.me/51${num.startsWith("51") ? num.slice(2) : num}`;
+                return (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                      <Phone size={13} color="#a78bfa" />
+                      <span style={{ fontSize: 15, color: "#a78bfa", fontWeight: 600 }}>{pedidoDetalle.celularEntrega}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <a href={wa} target="_blank" rel="noopener noreferrer"
+                        style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "#25d366", color: "#fff", fontSize: 16, fontWeight: 700, padding: "16px 0", borderRadius: 12, textDecoration: "none" }}>
+                        💬 WhatsApp
+                      </a>
+                      <a href={`tel:+51${num.startsWith("51") ? num.slice(2) : num}`}
+                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(255,255,255,0.07)", color: "#ccc", fontSize: 16, fontWeight: 600, padding: "16px 0", borderRadius: 12, textDecoration: "none" }}>
+                        📞 Llamar
+                      </a>
+                    </div>
+                  </div>
+                );
+              })()}
+              {pedidoDetalle.direccionEntrega && <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+                <MapPin size={14} color="#a78bfa" style={{flexShrink:0}} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13 }}>{pedidoDetalle.direccionEntrega}</div>
+                  {(() => {
+                    const cl = directorio.find(d => String(d.id) === String(pedidoDetalle.clienteId));
+                    const mapsUrl = cl?.coordenadas
+                      ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${cl.coordenadas.lat},${cl.coordenadas.lng}&travelmode=motorcycle`
+                      : cl?.mapsLink
+                      ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.mapsLink)}&travelmode=motorcycle`
+                      : cl?.direccion
+                      ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.direccion + " Pichanaki Peru")}&travelmode=motorcycle`
+                      : pedidoDetalle.direccionEntrega
+                      ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(pedidoDetalle.direccionEntrega + " Pichanaki Peru")}&travelmode=motorcycle`
+                      : null;
+                    return mapsUrl ? (
+                      <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, background: "#3b82f6", color: "#fff", fontSize: 15, fontWeight: 700, padding: "14px 18px", borderRadius: 10, textDecoration: "none" }}>
+                        🗺 Ir en moto al cliente
+                      </a>
+                    ) : null;
+                  })()}
+                </div>
+              </div>}
+              {pedidoDetalle.notasEntregaCliente && <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><FileText size={14} color="#555" style={{flexShrink:0}} /><div style={{ fontSize: 13 }}>{pedidoDetalle.notasEntregaCliente}</div></div>}
             </div>
           )}
 
-          {/* TAB 2: DIRECTORIO DE CLIENTES */}
-          {tab === "directorio" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Agenda de Clientes</h2>
-                <button onClick={() => setVista("crear-cliente")} style={{ background: "#16A34A", color: "#FFFFFF", border: "none", padding: "10px 16px", borderRadius: 10, fontWeight: "bold", display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}><Plus size={18} strokeWidth={3} /> Cliente</button>
-              </div>
+          {/* ── FLUJO BLOQUEADO — solo muestra el siguiente paso ── */}
 
-              {directorio.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "30px", background: "#F3F4F6", borderRadius: 16, border: "2px dashed #9CA3AF" }}>
-                  <p style={{ margin: 0, color: "#4B5563" }}>Ningún cliente en base de datos. Se agregan automáticamente al crear rutas.</p>
+          {/* Paso 1→2: En recojo → Recogido */}
+          {pedidoDetalle.estado === "En recojo" && (
+            <button onClick={() => setModal({ titulo: "¿Confirmar recojo?", msg: `Marcar la ropa de ${pedidoDetalle.nombre} como recogida.`, onConfirm: () => cambiarEstado(pedidoDetalle.id) })}
+              style={{ width: "100%", background: "#e879f9", border: "none", borderRadius: 14, padding: "22px", cursor: "pointer", color: "#fff", fontSize: 17, fontWeight: 700, marginBottom: 12, boxShadow: "0 4px 20px rgba(232,121,249,0.4)" }}>
+              🧺 Confirmar recojo
+            </button>
+          )}
+
+          {/* Paso 2→3: Recogido → elegir lavandería + tiempo obligatorio */}
+          {pedidoDetalle.estado === "Recogido" && (
+            <div style={{ background: "rgba(233,121,249,0.08)", border: "1px solid rgba(233,121,249,0.35)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
+              <div style={{ fontSize: 13, color: "#e879f9", fontWeight: 700, marginBottom: 10 }}>🧺 ¿A qué lavandería y cuánto tiempo?</div>
+              <label style={labelStyle}>LAVANDERÍA</label>
+              <select value={lavanderiaTemp} onChange={e => setLavanderiaTemp(e.target.value)}
+                style={{ ...inputStyle, marginBottom: 10, borderColor: "rgba(233,121,249,0.3)", background: "rgba(233,121,249,0.06)" }}>
+                {lavanderias.map(l => <option key={l} value={l} style={{ background: "#1a1a2e" }}>{l}</option>)}
+              </select>
+              <label style={labelStyle}>TIEMPO EN LAVANDERÍA (horas)</label>
+              <input type="number" placeholder="Ej: 1.5 = 1h 30m" step="0.25" min="0.25"
+                value={minutosTemp}
+                onChange={e => setMinutosTemp(e.target.value)}
+                style={{ ...inputStyle, marginBottom: 6 }} />
+              {minutosTemp && parseFloat(minutosTemp) > 0 && (
+                <div style={{ fontSize: 12, color: "#e879f9", marginBottom: 10, textAlign: "center" }}>
+                  = {duracion(parseFloat(minutosTemp) * 3600000)} · listo aprox. {formatTime(Date.now() + parseFloat(minutosTemp) * 3600000)}
                 </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {directorio.map(d => (
-                    <div key={d.id} style={{ background: "#F3F4F6", border: "2px solid #D1D5DB", padding: 14, borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              )}
+              <button
+                disabled={!minutosTemp || parseFloat(minutosTemp) <= 0}
+                onClick={() => {
+                  if (!minutosTemp || parseFloat(minutosTemp) <= 0) return;
+                  const mins = Math.round(parseFloat(minutosTemp) * 60);
+                  setModal({
+                    titulo: `¿Dejar en ${lavanderiaTemp}?`,
+                    msg: `${duracion(parseFloat(minutosTemp) * 3600000)} · listo aprox. ${formatTime(Date.now() + parseFloat(minutosTemp) * 3600000)}`,
+                    onConfirm: () => {
+                      const ahora2 = Date.now();
+                      setPedidos(prev => prev.map(c => {
+                        if (c.id !== pedidoDetalle.id) return c;
+                        return {
+                          ...c,
+                          estado: "En lavandería",
+                          lavanderia: lavanderiaTemp,
+                          tiempoLavanderia: mins,
+                          inicioLavanderia: ahora2,
+                          historial: [...(c.historial || []), { estado: "En lavandería", fecha: ahora2, lavanderia: lavanderiaTemp }]
+                        };
+                      }));
+                      setMinutosTemp("");
+                    }
+                  });
+                }}
+                style={{ width: "100%", background: minutosTemp && parseFloat(minutosTemp) > 0 ? "#3b82f6" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 10, padding: "18px", cursor: minutosTemp && parseFloat(minutosTemp) > 0 ? "pointer" : "default", color: minutosTemp && parseFloat(minutosTemp) > 0 ? "#fff" : "#444", fontSize: 16, fontWeight: 700, boxShadow: minutosTemp && parseFloat(minutosTemp) > 0 ? "0 4px 16px rgba(59,130,246,0.35)" : "none" }}>
+                🧼 Dejar en {lavanderiaTemp}
+              </button>
+            </div>
+          )}
+          {/* Paso 3: En lavandería → mostrar countdown */}
+          {pedidoDetalle.estado === "En lavandería" && pedidoDetalle.inicioLavanderia && pedidoDetalle.tiempoLavanderia && (() => {
+            const fin = new Date(pedidoDetalle.inicioLavanderia).getTime() + pedidoDetalle.tiempoLavanderia * 60000;
+            const restMs = fin - ahora;
+            const vencido = restMs <= 0;
+            return (
+              <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, marginBottom: 6 }}>TIEMPO RESTANTE</div>
+                <div style={{ fontSize: 36, fontWeight: 800, color: vencido ? "#ef4444" : "#3b82f6", marginBottom: 4, letterSpacing: -1 }}>
+                  {vencido
+                    ? <><AlertCircle size={28} color="#ef4444" style={{display:"inline",verticalAlign:"middle",marginRight:6}} />Vencido hace {duracion(restMs)}</>
+                    : <><Timer size={28} color="#3b82f6" style={{display:"inline",verticalAlign:"middle",marginRight:6}} />{duracion(restMs)} {Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes"}</>}
+                </div>
+                <div style={{ fontSize: 12, color: "#555", marginBottom: 14 }}>
+                  {vencido ? "Ve a recoger la ropa cuanto antes" : `Listo aprox. a las ${formatTime(new Date(fin))}`}
+                </div>
+                <button onClick={() => setModal({ titulo: "¿Recogiste la ropa?", msg: `La ropa de ${pedidoDetalle.nombre} pasará a "Listo para entregar".`, onConfirm: () => cambiarEstado(pedidoDetalle.id) })}
+                  style={{ width: "100%", background: "#10b981", border: "none", borderRadius: 10, padding: "22px", cursor: "pointer", color: "#fff", fontSize: 17, fontWeight: 700, boxShadow: "0 4px 16px rgba(16,185,129,0.35)" }}>
+                  ✅ Recogí la ropa — Lista para entregar
+                </button>
+              </div>
+            );
+          })()}
+
+          {/* Paso 4→5: Lista para entregar → Entregado */}
+          {pedidoDetalle.estado === "Listo para entregar" && (
+            <button onClick={() => {
+              const noPago = !pedidoDetalle.pago || pedidoDetalle.pago === "No pagó";
+              if (noPago) {
+                setModal({ titulo: "⚠️ Cliente aún no ha pagado", msg: "Registra el pago primero antes de confirmar la entrega.", onConfirm: null });
+              } else {
+                setModal({ titulo: "¿Confirmar entrega al cliente?", msg: "El pedido pasará a estado Entregado.", onConfirm: () => cambiarEstado(pedidoDetalle.id) });
+              }
+            }}
+              style={{ width: "100%", background: "#10b981", border: "none", borderRadius: 14, padding: "22px", cursor: "pointer", color: "#fff", fontSize: 17, fontWeight: 700, marginBottom: 12, boxShadow: "0 4px 20px rgba(16,185,129,0.4)" }}>
+              📦 Confirmar entrega al cliente
+            </button>
+          )}
+
+          {/* Paso final: Entregado — duración total */}
+          {pedidoDetalle.estado === "Entregado" && pedidoDetalle.fechaFin && (
+            <div style={{ background: "rgba(107,114,128,0.08)", border: "0.5px solid rgba(107,114,128,0.2)", borderRadius: 14, padding: "16px", marginBottom: 12, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, marginBottom: 6 }}>DURACIÓN TOTAL DEL SERVICIO</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: "#a78bfa", letterSpacing: -1 }}>
+                {duracion(new Date(pedidoDetalle.fechaFin) - new Date(pedidoDetalle.ingreso))}
+              </div>
+              <div style={{ fontSize: 11, color: "#555", marginTop: 6 }}>
+                {formatDate(pedidoDetalle.ingreso)} {formatTime(pedidoDetalle.ingreso)} → {formatTime(pedidoDetalle.fechaFin)}
+              </div>
+            </div>
+          )}
+
+          {/* Historial */}
+          {pedidoDetalle.historial?.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 8 }}>HISTORIAL</div>
+              {pedidoDetalle.historial.map((h, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", paddingBottom: 10, marginBottom: 10, borderBottom: i < pedidoDetalle.historial.length - 1 ? "0.5px solid rgba(255,255,255,0.04)" : "none" }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: ESTADO_COLORS[h.estado] || "#666", marginTop: 4, flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 13, color: "#e8e4dc" }}>{ESTADO_ICON[h.estado]} {h.estado}</div>
+                    {h.lavanderia && <div style={{ fontSize: 11, color: "#3b82f6", marginTop: 1 }}>→ {h.lavanderia}</div>}
+                    <div style={{ fontSize: 11, color: "#555" }}>{formatDate(h.fecha)} {formatTime(h.fecha)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button onClick={() => eliminarPedido(pedidoDetalle.id)}
+            style={{ width: "100%", background: "rgba(239,68,68,0.07)", border: "0.5px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "12px", cursor: "pointer", color: "#ef4444", fontSize: 14 }}>
+            Eliminar registro
+          </button>
+        </div>
+      )}
+
+      {/* ══ NUEVO / EDITAR CLIENTE ══ */}
+      {vista === "nuevoCliente" && (
+        <div style={{ padding: "12px 16px 80px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {[
+              { label: "NOMBRE COMPLETO *", key: "nombre", type: "text", placeholder: "María García" },
+              { label: "CELULAR", key: "celular", type: "tel", placeholder: "987 654 321" },
+              { label: "DIRECCIÓN DE ENTREGA", key: "direccion", type: "text", placeholder: "Jr. Los Pinos 123, frente al mercado" },
+            ].map(f => (
+              <div key={f.key}>
+                <label style={labelStyle}>{f.label}</label>
+                <input type={f.type} placeholder={f.placeholder} value={clienteDir[f.key]}
+                  onChange={e => setClienteDir(p => ({ ...p, [f.key]: e.target.value }))} style={inputStyle} />
+              </div>
+            ))}
+
+            {/* Ubicación GPS + coordenadas manuales */}
+            <div>
+              <label style={labelStyle}>UBICACIÓN (COORDENADAS)</label>
+
+              {/* Botón GPS */}
+              <button onClick={capturarUbicacion} disabled={gpsLoading}
+                style={{ width: "100%", background: clienteDir.coordenadas ? "rgba(16,185,129,0.1)" : "rgba(59,130,246,0.08)", border: `0.5px solid ${clienteDir.coordenadas ? "rgba(16,185,129,0.3)" : "rgba(59,130,246,0.3)"}`, borderRadius: 10, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 20 }}>{gpsLoading ? <Timer size={20} color="#3b82f6" /> : clienteDir.coordenadas ? <PackageCheck size={20} color="#10b981" /> : <MapPin size={20} color="#3b82f6" />}</span>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: clienteDir.coordenadas ? "#10b981" : "#3b82f6" }}>
+                    {gpsLoading ? "Obteniendo ubicación..." : clienteDir.coordenadas ? "Ubicación capturada ✓" : "Usar mi ubicación actual (GPS)"}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#555", marginTop: 1 }}>
+                    {clienteDir.coordenadas ? `${clienteDir.coordenadas.lat.toFixed(6)}, ${clienteDir.coordenadas.lng.toFixed(6)}` : "Toca cuando estés en casa del cliente"}
+                  </div>
+                </div>
+                {clienteDir.coordenadas && (
+                  <div style={{ marginLeft: "auto" }}
+                    onClick={e => { e.stopPropagation(); setClienteDir(p => ({ ...p, coordenadas: null })); }}>
+                    <span style={{ fontSize: 12, color: "#555" }}>✕</span>
+                  </div>
+                )}
+              </button>
+
+              {/* Campo manual lat, lng */}
+              <div style={{ fontSize: 11, color: "#555", textAlign: "center", marginBottom: 8 }}>— o ingresa coordenadas manualmente —</div>
+              <input
+                type="text"
+                placeholder="Ej: -10.92345, -74.98765"
+                value={clienteDir.coordenadas && !gpsLoading ? `${clienteDir.coordenadas.lat}, ${clienteDir.coordenadas.lng}` : ""}
+                onChange={e => {
+                  const val = e.target.value;
+                  const match = val.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+                  if (match) {
+                    setClienteDir(p => ({ ...p, coordenadas: { lat: parseFloat(match[1]), lng: parseFloat(match[2]) } }));
+                  } else if (val === "") {
+                    setClienteDir(p => ({ ...p, coordenadas: null }));
+                  }
+                }}
+                style={{ ...inputStyle, fontSize: 13, borderColor: clienteDir.coordenadas ? "rgba(16,185,129,0.4)" : "rgba(255,255,255,0.1)" }}
+              />
+              {clienteDir.coordenadas && (
+                <a href={`https://maps.google.com/?q=${clienteDir.coordenadas.lat},${clienteDir.coordenadas.lng}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ display: "block", marginTop: 6, fontSize: 11, color: "#10b981", textAlign: "center" }}>
+                  Verificar en Maps →
+                </a>
+              )}
+            </div>
+
+            <div>
+              <label style={labelStyle}>NOTAS DE ENTREGA</label>
+              <textarea placeholder="Ej: Tienda en el mercado central, piso 2 puesto 15. Preguntar por don Carlos."
+                value={clienteDir.notasEntrega}
+                onChange={e => setClienteDir(p => ({ ...p, notasEntrega: e.target.value }))}
+                rows={4} style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5 }} />
+            </div>
+            <button onClick={guardarClienteDir} disabled={!clienteDir.nombre}
+              style={{ background: clienteDir.nombre ? "#10b981" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 14, padding: "18px", color: clienteDir.nombre ? "#fff" : "#444", fontSize: 16, fontWeight: 700, cursor: clienteDir.nombre ? "pointer" : "default", boxShadow: clienteDir.nombre ? "0 4px 24px rgba(16,185,129,0.4)" : "none", marginTop: 4 }}>
+              {clienteDirActivo ? "Guardar cambios" : "Agregar cliente"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══ DETALLE CLIENTE ══ */}
+      {vista === "detalleCliente" && clienteDirDetalle && (() => {
+        const pCli = pedidos.filter(p => p.clienteId === String(clienteDirDetalle.id) || p.nombre === clienteDirDetalle.nombre);
+        const activos = pCli.filter(p => p.estado !== "Entregado");
+        const entregados = pCli.filter(p => p.estado === "Entregado");
+        return (
+          <div style={{ padding: "12px 16px 80px" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
+              <button onClick={() => abrirEditarCliente(clienteDirDetalle)}
+                style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", color: "#888", fontSize: 13 }}>Editar</button>
+            </div>
+            <div style={{ background: "rgba(167,139,250,0.06)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
+              <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", marginBottom: 12 }}>DATOS DE CONTACTO</div>
+              {clienteDirDetalle.celular ? (() => {
+                const num = clienteDirDetalle.celular.replace(/\D/g, "");
+                const wa = `https://wa.me/51${num.startsWith("51") ? num.slice(2) : num}`;
+                return (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}><Phone size={18} color="#a78bfa" /></div>
                       <div>
-                        <div style={{ fontWeight: "bold", fontSize: 15 }}>{d.nombre}</div>
-                        <div style={{ fontSize: 13, color: "#374151" }}>📱 {d.celular || "Sin celular"}</div>
-                        <div style={{ fontSize: 12, color: "#4B5563", marginTop: 2 }}>📍 {d.direccion || "Sin dirección física"}</div>
-                      </div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {d.celular && <a href={`tel:${d.celular}`} style={{ padding: 10, background: "#FFFFFF", border: "1px solid #9CA3AF", borderRadius: 8, color: "#2563EB" }}><Phone size={16} strokeWidth={2.5} /></a>}
-                        {d.mapsLink && <a href={d.mapsLink} target="_blank" rel="noreferrer" style={{ padding: 10, background: "#FFFFFF", border: "1px solid #9CA3AF", borderRadius: 8, color: "#16A34A" }}><Map size={16} strokeWidth={2.5} /></a>}
+                        <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>CELULAR</div>
+                        <div style={{ fontSize: 16, color: "#a78bfa", fontWeight: 700 }}>{clienteDirDetalle.celular}</div>
                       </div>
                     </div>
-                  ))}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <a href={wa} target="_blank" rel="noopener noreferrer"
+                        style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "#25d366", color: "#fff", fontSize: 16, fontWeight: 700, padding: "16px 0", borderRadius: 12, textDecoration: "none" }}>
+                        💬 WhatsApp
+                      </a>
+                      <a href={`tel:+51${num.startsWith("51") ? num.slice(2) : num}`}
+                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(255,255,255,0.07)", color: "#ccc", fontSize: 16, fontWeight: 600, padding: "16px 0", borderRadius: 12, textDecoration: "none" }}>
+                        📞 Llamar
+                      </a>
+                    </div>
+                  </div>
+                );
+              })() : <div style={{ fontSize: 12, color: "#444", marginBottom: 10 }}>Sin celular</div>}
+              {clienteDirDetalle.direccion && (
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><MapPin size={18} color="#a78bfa" /></div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>DIRECCIÓN</div>
+                    <div style={{ fontSize: 13 }}>{clienteDirDetalle.direccion}</div>
+                    {(clienteDirDetalle.coordenadas || clienteDirDetalle.mapsLink) && (
+                      <a href={
+                        clienteDirDetalle.coordenadas
+                          ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${clienteDirDetalle.coordenadas.lat},${clienteDirDetalle.coordenadas.lng}&travelmode=motorcycle`
+                          : `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(clienteDirDetalle.mapsLink)}&travelmode=motorcycle`
+                      } target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-block", marginTop: 6, background: "#3b82f6", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}>
+                        🗺 Ir en moto al cliente
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+              {clienteDirDetalle.notasEntrega && (
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><FileText size={18} color="#888" /></div>
+                  <div><div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>INSTRUCCIONES</div><div style={{ fontSize: 13, lineHeight: 1.5 }}>{clienteDirDetalle.notasEntrega}</div></div>
                 </div>
               )}
             </div>
-          )}
-
-          {/* TAB 3: MÓDULO DE LAVANDERÍAS ASOCIADAS */}
-          {tab === "lavanderias" && (
-            <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 12 }}>Talleres de Lavandería</h2>
-              <form onSubmit={(e) => { e.preventDefault(); if(nuevaLav.trim()) { setLavanderias([...lavanderias, nuevaLav.trim()]); setNuevaLav(""); } }} style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-                <input type="text" value={nuevaLav} onChange={e => setNuevaLav(e.target.value)} style={{ ...inputStyle, marginBottom: 0 }} placeholder="Nombre de nueva lavandería..." />
-                <button type="submit" style={{ padding: "0 20px", background: "#16A34A", color: "#FFFFFF", border: "none", borderRadius: 10, fontWeight: "bold" }}>Añadir</button>
-              </form>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {lavanderias.map((l, i) => {
-                  const prendasAhi = pedidos.filter(p => p.estado === "En lavandería" && p.lavanderiaAsignada === l).length;
-                  return (
-                    <div key={i} style={{ background: "#F3F4F6", border: "2px solid #D1D5DB", padding: 16, borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ background: "#2563EB", color: "#FFFFFF", padding: 8, borderRadius: 8 }}><WashingMachine size={20} /></div>
-                        <div style={{ fontWeight: "bold" }}>{l}</div>
-                      </div>
-                      <span style={{ fontSize: 12, background: prendasAhi > 0 ? "#FEF3C7" : "#E5E7EB", border: prendasAhi > 0 ? "1px solid #D97706" : "1px solid #9CA3AF", padding: "4px 10px", borderRadius: 12, fontWeight: "bold", color: prendasAhi > 0 ? "#B45309" : "#111827" }}>
-                        {prendasAhi} órdenes procesando
-                      </span>
+            {activos.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 8 }}>ACTIVOS ({activos.length})</div>
+                {activos.map(p => (
+                  <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
+                    style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "11px 13px", marginBottom: 6, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>{ESTADO_ICON[p.estado]} {p.kg} kg · S/. {p.precio}</div>
+                      <div style={{ fontSize: 11, color: "#555" }}>{p.lavanderia || "Sin lavandería"} · {formatDate(p.ingreso)}</div>
                     </div>
-                  );
-                })}
+                    <div style={{ fontSize: 10, color: ESTADO_COLORS[p.estado], background: `${ESTADO_COLORS[p.estado]}18`, padding: "3px 8px", borderRadius: 6 }}>{p.estado}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {entregados.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 8 }}>HISTORIAL ({entregados.length})</div>
+                {entregados.slice(0, 5).map(p => (
+                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "0.5px solid rgba(255,255,255,0.04)" }}>
+                    <div style={{ fontSize: 12, color: "#666" }}>{p.kg} kg · {formatDate(p.ingreso)}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#a78bfa" }}>S/. {p.precio}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => { setForm({ ...initialForm, clienteId: String(clienteDirDetalle.id), nombre: clienteDirDetalle.nombre }); setVista("nuevo"); }}
+              style={{ width: "100%", background: "rgba(16,185,129,0.1)", border: "0.5px solid rgba(16,185,129,0.3)", borderRadius: 10, padding: "13px", cursor: "pointer", color: "#10b981", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              + Nuevo pedido para este cliente
+            </button>
+            <button onClick={() => eliminarClienteDir(clienteDirDetalle.id)}
+              style={{ width: "100%", background: "rgba(239,68,68,0.07)", border: "0.5px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "12px", cursor: "pointer", color: "#ef4444", fontSize: 14 }}>
+              Eliminar cliente
+            </button>
+          </div>
+        );
+      })()}
+
+      {/* ══ BARRA DE PROGRESO EN LAVANDERÍA ══ */}
+      {!vista && tab === "dashboard" && filtro === "lavanderia" && grupos.lavanderia.length > 0 && (() => {
+        const ahora2 = Date.now();
+        const conTimer = grupos.lavanderia
+          .filter(c => c.inicioLavanderia && c.tiempoLavanderia)
+          .map(c => {
+            const inicio = new Date(c.inicioLavanderia).getTime();
+            const fin = inicio + c.tiempoLavanderia * 60000;
+            const total = fin - inicio;
+            const transcurrido = ahora2 - inicio;
+            const pct = Math.min(100, Math.max(0, (transcurrido / total) * 100));
+            const restMs = fin - ahora2;
+            const listo = restMs <= 0;
+            return { ...c, pct, restMs, listo, fin };
+          })
+          .sort((a, b) => b.pct - a.pct); // primero los que más % tienen (más cerca de terminar)
+        if (conTimer.length === 0) return null;
+        return (
+          <div style={{ margin: "0 16px 12px", background: "rgba(59,130,246,0.06)", border: "0.5px solid rgba(59,130,246,0.2)", borderRadius: 14, padding: "12px 14px" }}>
+            <div style={{ fontSize: 10, letterSpacing: 1, color: "#3b82f6", marginBottom: 10 }}>EN LAVANDERÍA — PROGRESO</div>
+            {conTimer.map(c => (
+              <div key={c.id} onClick={() => { setPedidoActivo(c.id); setVista("detalle"); }}
+                style={{ marginBottom: 10, cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{c.nombre}</div>
+                  <div style={{ fontSize: 11, color: c.listo ? "#ef4444" : "#3b82f6", fontWeight: 700 }}>
+                    {c.listo
+                      ? <><AlertCircle size={12} color="#ef4444" style={{display:"inline",verticalAlign:"middle",marginRight:3}} />Vencido hace {duracion(c.restMs)}</>
+                      : <><Timer size={12} style={{display:"inline",verticalAlign:"middle",marginRight:3}} />{duracion(c.restMs)}</>}
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: "#555", marginBottom: 5 }}>{c.lavanderia} · {c.kg} kg</div>
+                <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%",
+                    width: `${c.pct}%`,
+                    background: c.listo ? "#10b981" : `linear-gradient(90deg, #3b82f6, #60a5fa)`,
+                    borderRadius: 4,
+                    transition: "width 1s ease"
+                  }} />
+                </div>
+                <div style={{ fontSize: 10, color: "#444", marginTop: 3, textAlign: "right" }}>{Math.round(c.pct)}%</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ══ LAVANDERÍAS ══ */}
+      {!vista && tab === "lavanderias" && (() => {
+        // Ranking semanal: tiempo promedio por lavandería
+        const sw2 = startOfWeek(new Date());
+        const pedidosSemana = pedidos.filter(c =>
+          c.estado === "Entregado" && c.lavanderia && c.inicioLavanderia && c.fechaFin &&
+          new Date(c.ingreso) >= sw2
+        );
+        const rankingMap = {};
+        pedidosSemana.forEach(c => {
+          const lav = c.lavanderia;
+          if (!rankingMap[lav]) rankingMap[lav] = { total: 0, count: 0 };
+          const mins = (new Date(c.fechaFin).getTime() - new Date(c.inicioLavanderia).getTime()) / 60000;
+          rankingMap[lav].total += mins;
+          rankingMap[lav].count += 1;
+        });
+        const ranking = Object.entries(rankingMap)
+          .map(([lav, d]) => ({ lav, promedio: d.total / d.count, count: d.count }))
+          .sort((a, b) => a.promedio - b.promedio);
+
+        return (
+          <div style={{ padding: "12px 16px 100px" }}>
+            {/* Lista de lavanderías */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 10 }}>MIS LAVANDERÍAS ({lavanderias.length})</div>
+              {lavanderias.map((lav, idx) => (
+                <div key={idx} style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  {editandoLav?.idx === idx ? (
+                    <input
+                      value={editandoLav.nombre}
+                      onChange={e => setEditandoLav(p => ({ ...p, nombre: e.target.value }))}
+                      style={{ ...inputStyle, flex: 1, marginRight: 8 }}
+                      autoFocus
+                    />
+                  ) : (
+                    <div style={{ fontSize: 14, fontWeight: 500, display:"flex", alignItems:"center", gap:6 }}><WashingMachine size={14} color="#3b82f6" />{lav}</div>
+                  )}
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    {editandoLav?.idx === idx ? (
+                      <>
+                        <button onClick={() => {
+                          if (!editandoLav.nombre.trim()) return;
+                          setLavanderias(prev => prev.map((l, i) => i === idx ? editandoLav.nombre.trim() : l));
+                          setEditandoLav(null);
+                        }} style={{ background: "#10b981", border: "none", borderRadius: 8, padding: "6px 12px", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>✓</button>
+                        <button onClick={() => setEditandoLav(null)} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#888", fontSize: 12, cursor: "pointer" }}>✕</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => setEditandoLav({ idx, nombre: lav })} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#888", fontSize: 13, cursor: "pointer" }}><Pencil size={14} /></button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Agregar nueva */}
+              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <input
+                  placeholder="Nueva lavandería..."
+                  value={nuevaLavanderia}
+                  onChange={e => setNuevaLavanderia(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && nuevaLavanderia.trim()) {
+                      setLavanderias(prev => [...prev, nuevaLavanderia.trim()]);
+                      setNuevaLavanderia("");
+                    }
+                  }}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button onClick={() => {
+                  if (!nuevaLavanderia.trim()) return;
+                  setLavanderias(prev => [...prev, nuevaLavanderia.trim()]);
+                  setNuevaLavanderia("");
+                }} style={{ background: "#10b981", border: "none", borderRadius: 10, padding: "0 18px", color: "#fff", fontSize: 18, cursor: "pointer", fontWeight: 700, flexShrink: 0 }}>+</button>
               </div>
             </div>
-          )}
 
-          {/* TAB 4: MÓDULO FINANCIERO / REPORTES DE LIQUIDACIÓN */}
-          {tab === "reportes" && (
+            {/* Ranking semanal */}
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 16 }}>Liquidación de Caja Hoy</h2>
-              
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-                <div style={{ background: "#F3F4F6", border: "2px solid #D1D5DB", padding: 14, borderRadius: 12 }}>
-                  <div style={{ fontSize: 12, color: "#4B5563", fontWeight: "bold" }}>INGRESOS ENTREGADOS</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: "#16A34A", marginTop: 4 }}>S/ {reportesGlobales.ingresosHoy.toFixed(2)}</div>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 10 }}>RANKING ESTA SEMANA — MÁS RÁPIDAS</div>
+              {ranking.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "30px 0", color: "#444", fontSize: 13 }}>
+                  <div style={{ marginBottom: 8, display:"flex", justifyContent:"center" }}><WashingMachine size={32} color="#444" /></div>
+                  Sin datos esta semana aún
                 </div>
-                <div style={{ background: "#F3F4F6", border: "2px solid #D1D5DB", padding: 14, borderRadius: 12 }}>
-                  <div style={{ fontSize: 12, color: "#4B5563", fontWeight: "bold" }}>KILOS PROCESADOS</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: "#111827", marginTop: 4 }}>{reportesGlobales.kilosHoy.toFixed(2)} Kg</div>
+              ) : ranking.map((r, i) => (
+                <div key={r.lav} style={{ background: i === 0 ? "rgba(16,185,129,0.07)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${i === 0 ? "rgba(16,185,129,0.25)" : "rgba(255,255,255,0.06)"}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontSize: 16 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i+1}.`}</span>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{r.lav}</div>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#555" }}>{r.count} pedido{r.count !== 1 ? "s" : ""} esta semana</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: i === 0 ? "#10b981" : "#a78bfa" }}>{duracion(r.promedio * 60000)}</div>
+                    <div style={{ fontSize: 10, color: "#555" }}>promedio</div>
+                  </div>
                 </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-                <div style={{ background: "#F3F4F6", border: "2px solid #D1D5DB", padding: 14, borderRadius: 12 }}>
-                  <div style={{ fontSize: 12, color: "#4B5563", fontWeight: "bold" }}>POR COBRAR (EN RUTA)</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: "#D97706", marginTop: 4 }}>S/ {reportesGlobales.cuentasPorCobrar.toFixed(2)}</div>
-                </div>
-                <div style={{ background: "#F3F4F6", border: "2px solid #D1D5DB", padding: 14, borderRadius: 12 }}>
-                  <div style={{ fontSize: 12, color: "#4B5563", fontWeight: "bold" }}>UTILIDAD NETO REAL</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: "#2563EB", marginTop: 4 }}>S/ {reportesGlobales.utilidadProyectada.toFixed(2)}</div>
-                </div>
-              </div>
-
-              <div style={{ background: "#FFFFFF", border: "2px solid #D1D5DB", padding: 16, borderRadius: 14 }}>
-                <h4 style={{ margin: "0 0 10px 0", fontSize: 14, color: "#111827" }}>Auditoría Interna de Caja</h4>
-                <p style={{ margin: 0, fontSize: 12, color: "#374151", lineHeight: "1.5" }}>
-                  Las métricas se calculan automáticamente con base en los registros locales almacenados en el dispositivo del operador. La utilidad neta resta los costos cargados por los talleres del monto bruto entregado.
-                </p>
-              </div>
+              ))}
             </div>
-          )}
+          </div>
+        );
+      })()}
 
-        </main>
+      {/* ══ GESTIÓN LAVANDERÍAS (vista) ══ */}
+      {vista === "gestionLavanderias" && (
+        <div style={{ padding: "12px 16px 80px" }}>
+          <div style={{ fontSize: 14, color: "#555", textAlign: "center", paddingTop: 40 }}>
+            Usa el tab Lavands. para gestionar tus lavanderías
+          </div>
+        </div>
       )}
 
-      {/* FOOTER NAVEGADOR - MENÚ FIJO INFERIOR EN CLARO ALTO CONTRASTE */}
-      <nav style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "#F9FAFB", borderTop: "3px solid #D1D5DB", display: "flex", zIndex: 40 }}>
+
+      {/* ══ MODAL GLOBAL ══ */}
+      {modal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          onClick={() => setModal(null)}>
+          <div style={{ background: "#1a1a2e", border: "0.5px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 360 }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{modal.titulo}</div>
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>{modal.msg}</div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setModal(null)}
+                style={{ flex: 1, padding: 14, borderRadius: 12, border: "0.5px solid rgba(255,255,255,0.1)", background: "transparent", color: "#888", cursor: "pointer", fontWeight: 600 }}>
+                {modal.onConfirm ? "Cancelar" : "Entendido"}
+              </button>
+              {modal.onConfirm && (
+                <button onClick={() => { modal.onConfirm(); setModal(null); }}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700 }}>
+                  Confirmar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!vista && (tab === "dashboard" || tab === "directorio" || tab === "lavanderias") && (
+        <button
+          onClick={() => {
+            if (tab === "directorio") { setClienteDir(initialClienteDir); setClienteDirActivo(null); setVista("nuevoCliente"); }
+            else if (tab === "lavanderias") setVista("gestionLavanderias");
+            else setVista("nuevo");
+          }}
+          style={{ position: "fixed", bottom: 88, left: "50%", transform: "translateX(-50%)", background: "#10b981", border: "none", borderRadius: 20, padding: "0 32px", height: 56, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 16, fontWeight: 700, color: "#fff", boxShadow: "0 6px 32px rgba(16,185,129,0.6)", zIndex: 50, whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 22 }}>+</span>
+          {tab === "directorio" ? "Nuevo cliente" : tab === "lavanderias" ? "Gestionar" : "Nuevo pedido"}
+        </button>
+      )}
+
+      {/* ══ BOTTOM NAV ══ */}
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "rgba(10,10,15,0.97)", borderTop: "0.5px solid rgba(255,255,255,0.08)", display: "flex", zIndex: 40 }}>
         {[
-          { key: "dashboard",   icon: <ClipboardList size={24} strokeWidth={2.5} />, label: "Pedidos",   badge: urgentes.length },
-          { key: "directorio",  icon: <Users size={24} strokeWidth={2.5} />,          label: "Clientes",  badge: 0 },
-          { key: "lavanderias", icon: <WashingMachine size={24} strokeWidth={2.5} />, label: "Lavands.",  badge: 0 },
-          { key: "reportes",    icon: <BarChart2 size={24} strokeWidth={2.5} />,      label: "Reportes",  badge: 0 },
+          { key: "dashboard",   icon: <ClipboardList size={20} />, label: "Pedidos",   badge: urgentes.length },
+          { key: "directorio",  icon: <Users size={20} />,          label: "Clientes",  badge: 0 },
+          { key: "lavanderias", icon: <WashingMachine size={20} />, label: "Lavands.",  badge: 0 },
+          { key: "reportes",    icon: <BarChart2 size={20} />,      label: "Reportes",  badge: 0 },
         ].map(t => {
           const activo = !vista && tab === t.key;
           return (
             <button key={t.key} onClick={() => { setVista(null); setTab(t.key); }}
-              style={{ flex: 1, background: "none", border: "none", padding: "12px 4px 16px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, color: activo ? "#16A34A" : "#6B7280", position: "relative" }}>
-              <span>{t.icon}</span>
-              <span style={{ fontSize: 12, fontWeight: activo ? 800 : 600 }}>{t.label}</span>
+              style={{ flex: 1, background: "none", border: "none", padding: "12px 4px 16px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: activo ? "#10b981" : "#444", position: "relative" }}>
+              <span style={{ fontSize: 24 }}>{t.icon}</span>
+              <span style={{ fontSize: 11, fontWeight: activo ? 700 : 400 }}>{t.label}</span>
               {t.badge > 0 && (
-                <span style={{ position: "absolute", top: 4, right: "20%", background: "#DC2626", color: "#FFFFFF", fontSize: 10, fontWeight: "bold", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {t.badge}
-                </span>
+                <div style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", background: "#ef4444", color: "#fff", fontSize: 9, fontWeight: 700, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>{t.badge}</div>
               )}
             </button>
           );
         })}
-      </nav>
+      </div>
 
     </div>
   );
