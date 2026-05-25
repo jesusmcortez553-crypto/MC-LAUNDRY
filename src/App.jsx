@@ -10,11 +10,11 @@ const SIGUIENTE_ESTADO = {
   "Listo para entregar": "Entregado",
 };
 const ESTADO_COLORS = {
-  "En recojo":           "#f59e0b",
-  "Recogido":            "#e879f9",
-  "En lavandería":       "#3b82f6",
-  "Listo para entregar": "#10b981",
-  "Entregado":           "#6b7280",
+  "En recojo":           "#D97706", // Ámbar oscuro muy legible
+  "Recogido":            "#C026D3", // Fucsia fuerte
+  "En lavandería":       "#2563EB", // Azul rey de alta visibilidad
+  "Listo para entregar": "#16A34A", // Verde esmeralda encendido
+  "Entregado":           "#4B5563", // Gris oscuro texturizado
 };
 const ESTADO_DESC = {
   "En recojo":           "Camino a buscar la ropa",
@@ -107,7 +107,7 @@ export default function MCLaundry() {
         setClienteDir(p => ({
           ...p,
           coordenadas: { lat, lng },
-          mapsLink: `https://maps.google.com/?q=${lat},${lng}`
+          mapsLink: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
         }));
         setGpsLoading(false);
       },
@@ -318,9 +318,9 @@ export default function MCLaundry() {
               { label: "Listos", val: stats.listos, color: "#10b981" },
               { label: "Urgentes", val: urgentes.length, color: urgentes.length > 0 ? "#ef4444" : "#333" },
             ].map((s, i) => (
-              <div key={i} style={{ background: i === 2 && s.val > 0 ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${s.color}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.val}</div>
-                <div style={{ fontSize: 10, color: "#555", letterSpacing: 1 }}>{s.label}</div>
+              <div key={i} style={{ background: i === 2 && s.val > 0 ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${s.color}33`, borderRadius: 12, padding: "14px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 34, fontWeight: 800, color: s.color, letterSpacing: -1, lineHeight: 1 }}>{s.val}</div>
+                <div style={{ fontSize: 11, color: "#666", letterSpacing: 1, marginTop: 4 }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -368,18 +368,18 @@ export default function MCLaundry() {
         <div style={{ padding: "12px 16px 16px" }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {[
-              { key: "recojo",     icon: <Bike size={13} />,          label: "Recojo",     count: grupos.recojo.length },
-              { key: "lavanderia", icon: <WashingMachine size={13} />, label: "Lavandería", count: grupos.lavanderia.length },
-              { key: "listos",     icon: <PackageCheck size={13} />,   label: "Listos",     count: grupos.listos.length },
-              { key: "entregados", icon: <Package size={13} />,        label: "Historial",  count: grupos.entregados.length },
+              { key: "recojo",     icon: <Bike size={16} />,          label: "Recojo",     count: grupos.recojo.length },
+              { key: "lavanderia", icon: <WashingMachine size={16} />, label: "Lavandería", count: grupos.lavanderia.length },
+              { key: "listos",     icon: <PackageCheck size={16} />,   label: "Listos",     count: grupos.listos.length },
+              { key: "entregados", icon: <Package size={16} />,        label: "Historial",  count: grupos.entregados.length },
             ].map(f => {
               const activo = filtro === f.key;
               return (
                 <button key={f.key} onClick={() => setFiltro(f.key)}
-                  style={{ background: activo ? "#10b981" : "rgba(255,255,255,0.04)", border: `0.5px solid ${activo ? "#10b981" : "rgba(255,255,255,0.08)"}`, borderRadius: 10, padding: "6px 10px", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-                  <span style={{ fontSize: 13 }}>{f.icon}</span>
-                  <span style={{ fontSize: 12, color: activo ? "#fff" : "#888", fontWeight: activo ? 600 : 400 }}>{f.label}</span>
-                  {f.count > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: activo ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.08)", color: activo ? "#fff" : "#666", padding: "1px 6px", borderRadius: 8 }}>{f.count}</span>}
+                  style={{ background: activo ? "#10b981" : "rgba(255,255,255,0.04)", border: `0.5px solid ${activo ? "#10b981" : "rgba(255,255,255,0.08)"}`, borderRadius: 12, padding: "10px 14px", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, flexShrink: 0, minHeight: 44 }}>
+                  <span>{f.icon}</span>
+                  <span style={{ fontSize: 14, color: activo ? "#fff" : "#888", fontWeight: activo ? 700 : 400 }}>{f.label}</span>
+                  {f.count > 0 && <span style={{ fontSize: 12, fontWeight: 700, background: activo ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.08)", color: activo ? "#fff" : "#666", padding: "2px 8px", borderRadius: 8 }}>{f.count}</span>}
                 </button>
               );
             })}
@@ -614,7 +614,7 @@ export default function MCLaundry() {
               )}
 
               {form.clienteId && (() => {
-                const cl = directorio.find(d => d.id === parseInt(form.clienteId));
+                const cl = directorio.find(d => String(d.id) === String(form.clienteId));
                 if (!cl) return null;
                 const mapsUrl = cl.coordenadas
                   ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${cl.coordenadas.lat},${cl.coordenadas.lng}&travelmode=motorcycle`
@@ -1316,21 +1316,21 @@ export default function MCLaundry() {
       )}
 
       {/* ══ BOTTOM NAV ══ */}
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "rgba(10,10,15,0.97)", borderTop: "0.5px solid rgba(255,255,255,0.08)", display: "flex", zIndex: 40 }}>
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "#F9FAFB", borderTop: "2px solid #D1D5DB", display: "flex", zIndex: 40 }}>
         {[
-          { key: "dashboard",   icon: <ClipboardList size={20} />, label: "Pedidos",   badge: urgentes.length },
-          { key: "directorio",  icon: <Users size={20} />,          label: "Clientes",  badge: 0 },
-          { key: "lavanderias", icon: <WashingMachine size={20} />, label: "Lavands.",  badge: 0 },
-          { key: "reportes",    icon: <BarChart2 size={20} />,      label: "Reportes",  badge: 0 },
+          { key: "dashboard",   icon: <ClipboardList size={26} />, label: "Pedidos",   badge: urgentes.length },
+          { key: "directorio",  icon: <Users size={26} />,          label: "Clientes",  badge: 0 },
+          { key: "lavanderias", icon: <WashingMachine size={26} />, label: "Lavands.",  badge: 0 },
+          { key: "reportes",    icon: <BarChart2 size={26} />,      label: "Reportes",  badge: 0 },
         ].map(t => {
           const activo = !vista && tab === t.key;
           return (
             <button key={t.key} onClick={() => { setVista(null); setTab(t.key); }}
-              style={{ flex: 1, background: "none", border: "none", padding: "10px 4px 14px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: activo ? "#10b981" : "#444", position: "relative" }}>
-              <span style={{ fontSize: 20 }}>{t.icon}</span>
-              <span style={{ fontSize: 10, fontWeight: activo ? 700 : 400 }}>{t.label}</span>
+              style={{ flex: 1, background: "none", border: "none", padding: "12px 4px 16px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, color: activo ? "#16A34A" : "#6B7280", position: "relative" }}>
+              <span>{t.icon}</span>
+              <span style={{ fontSize: 12, fontWeight: activo ? 700 : 400 }}>{t.label}</span>
               {t.badge > 0 && (
-                <div style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", background: "#ef4444", color: "#fff", fontSize: 9, fontWeight: 700, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>{t.badge}</div>
+                <div style={{ position: "absolute", top: 4, right: "calc(50% - 20px)", background: "#ef4444", color: "#fff", fontSize: 11, fontWeight: 800, minWidth: 20, height: 20, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{t.badge}</div>
               )}
             </button>
           );
