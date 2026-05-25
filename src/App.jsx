@@ -366,7 +366,7 @@ export default function MCLaundry() {
       {/* ══ DASHBOARD ══ */}
       {!vista && tab === "dashboard" && (
         <div style={{ padding: "12px 16px 16px" }}>
-          <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingRight: 16, paddingBottom: 2, scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {[
               { key: "recojo",     icon: <Bike size={13} />,          label: "Recojo",     count: grupos.recojo.length },
               { key: "lavanderia", icon: <WashingMachine size={13} />, label: "Lavandería", count: grupos.lavanderia.length },
