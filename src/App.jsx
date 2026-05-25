@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Bike, ShoppingBasket, WashingMachine, PackageCheck, Package, Phone, MapPin, FileText, Timer, AlertCircle, User, Users, BarChart2, ClipboardList, Plus, Shirt, Map, Pencil } from "lucide-react";
+import { Bike, ShoppingBasket, WashingMachine, PackageCheck, Package, Phone, MapPin, FileText, Timer, AlertCircle, User, Users, BarChart2, ClipboardList, Plus, Shirt, Map, Pencil, MessageCircleMore, PhoneOutgoing, Banknote, Smartphone, TriangleAlert, Zap, TextSearch } from "lucide-react";
 
 const LAVANDERIAS_DEFAULT = ["Lavandería Centro", "Lavandería Norte", "Lavandería Express", "Otra"];
 const ESTADOS = ["En recojo", "Recogido", "En lavandería", "Listo para entregar", "Entregado"];
@@ -56,13 +56,13 @@ function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 const initialForm = { nombre: "", kg: "", notas: "", precio: "", clienteId: "" };
 const initialClienteDir = { nombre: "", celular: "", direccion: "", notasEntrega: "", coordenadas: null, mapsLink: "" };
 const inputStyle = {
-  width: "100%", background: "rgba(255,255,255,0.05)",
-  border: "0.5px solid rgba(255,255,255,0.1)",
+  width: "100%", background: "rgba(14,165,233,0.07)",
+  border: "0.5px solid rgba(14,165,233,0.25)",
   borderRadius: 10, padding: "12px 14px",
-  color: "#e8e4dc", fontSize: 15, outline: "none",
+  color: "#0f172a", fontSize: 15, outline: "none",
   boxSizing: "border-box", fontFamily: "inherit"
 };
-const labelStyle = { fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 6, display: "block" };
+const labelStyle = { fontSize: 11, letterSpacing: 1, color: "#64748b", marginBottom: 6, display: "block" };
 
 export default function MCLaundry() {
   const [pedidos, setPedidos] = useState(() => {
@@ -284,7 +284,7 @@ export default function MCLaundry() {
   const clienteDirDetalle = directorio.find(d => d.id === clienteDirActivo);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0f", fontFamily: "'DM Sans','Segoe UI',sans-serif", color: "#e8e4dc", maxWidth: 480, margin: "0 auto", paddingBottom: 90 }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff", fontFamily: "'DM Sans','Segoe UI',sans-serif", color: "#0f172a", maxWidth: 480, margin: "0 auto", paddingBottom: 90 }}>
 
       {/* Toast */}
       {alertas.map((a, i) => (
@@ -298,17 +298,17 @@ export default function MCLaundry() {
 
       {/* Header principal */}
       {!vista && (
-        <div style={{ padding: "20px 16px 0", borderBottom: "0.5px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ padding: "20px 16px 0", borderBottom: "0.5px solid rgba(14,165,233,0.15)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
             <div>
-              <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: -1, background: "linear-gradient(90deg, #10b981, #a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Lava Go!</div>
+              <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: -1, background: "linear-gradient(90deg, #0ea5e9, #06b6d4)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Lava Go!</div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 10, color: "#555", letterSpacing: 1, marginBottom: 2 }}>HOY COBRADO</div>
-              <div style={{ fontSize: 30, fontWeight: 800, color: "#a78bfa", letterSpacing: -1, lineHeight: 1 }}>
+              <div style={{ fontSize: 10, color: "#64748b", letterSpacing: 1, marginBottom: 2 }}>HOY COBRADO</div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: "#0ea5e9", letterSpacing: -1, lineHeight: 1 }}>
                 S/. {stats.ingresosHoy.toFixed(2)}
               </div>
-              <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{stats.hoy} pedido{stats.hoy !== 1 ? "s" : ""}</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{stats.hoy} pedido{stats.hoy !== 1 ? "s" : ""}</div>
             </div>
           </div>
 
@@ -318,9 +318,9 @@ export default function MCLaundry() {
               { label: "Listos", val: stats.listos, color: "#10b981" },
               { label: "Urgentes", val: urgentes.length, color: urgentes.length > 0 ? "#ef4444" : "#333" },
             ].map((s, i) => (
-              <div key={i} style={{ background: i === 2 && s.val > 0 ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${s.color}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+              <div key={i} style={{ background: i === 2 && s.val > 0 ? "rgba(239,68,68,0.08)" : "rgba(0,0,0,0.04)", border: `0.5px solid ${s.color}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.val}</div>
-                <div style={{ fontSize: 10, color: "#555", letterSpacing: 1 }}>{s.label}</div>
+                <div style={{ fontSize: 10, color: "#64748b", letterSpacing: 1 }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -330,9 +330,9 @@ export default function MCLaundry() {
 
       {/* Header vistas internas */}
       {vista && (
-        <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid rgba(14,165,233,0.15)", display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={() => { setVista(null); setMostrarSugerencias(false); setSugerencias([]); setMinutosTemp(""); }}
-            style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: "#fff", fontSize: 18, flexShrink: 0 }}>←</button>
+            style={{ background: "rgba(14,165,233,0.07)", border: "none", borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: "#fff", fontSize: 18, flexShrink: 0 }}>←</button>
           <div style={{ fontSize: 17, fontWeight: 600 }}>
             {vista === "nuevo" && "Nuevo pedido"}
             {vista === "detalle" && pedidoDetalle?.nombre}
@@ -366,7 +366,7 @@ export default function MCLaundry() {
       {/* ══ DASHBOARD ══ */}
       {!vista && tab === "dashboard" && (
         <div style={{ padding: "12px 16px 16px" }}>
-          <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
             {[
               { key: "recojo",     icon: <Bike size={13} />,          label: "Recojo",     count: grupos.recojo.length },
               { key: "lavanderia", icon: <WashingMachine size={13} />, label: "Lavandería", count: grupos.lavanderia.length },
@@ -376,17 +376,17 @@ export default function MCLaundry() {
               const activo = filtro === f.key;
               return (
                 <button key={f.key} onClick={() => setFiltro(f.key)}
-                  style={{ background: activo ? "#10b981" : "rgba(255,255,255,0.04)", border: `0.5px solid ${activo ? "#10b981" : "rgba(255,255,255,0.08)"}`, borderRadius: 10, padding: "6px 10px", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-                  <span style={{ fontSize: 13 }}>{f.icon}</span>
-                  <span style={{ fontSize: 12, color: activo ? "#fff" : "#888", fontWeight: activo ? 600 : 400 }}>{f.label}</span>
-                  {f.count > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: activo ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.08)", color: activo ? "#fff" : "#666", padding: "1px 6px", borderRadius: 8 }}>{f.count}</span>}
+                  style={{ flex: 1, background: activo ? "#0ea5e9" : "rgba(0,0,0,0.04)", border: `0.5px solid ${activo ? "#0ea5e9" : "rgba(0,0,0,0.1)"}`, borderRadius: 12, padding: "10px 4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, minHeight: 44 }}>
+                  <span>{f.icon}</span>
+                  <span style={{ fontSize: 12, color: activo ? "#fff" : "#64748b", fontWeight: activo ? 700 : 400 }}>{f.label}</span>
+                  {f.count > 0 && <span style={{ fontSize: 11, fontWeight: 700, background: activo ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.07)", color: activo ? "#fff" : "#64748b", padding: "1px 6px", borderRadius: 8 }}>{f.count}</span>}
                 </button>
               );
             })}
           </div>
 
           {filtro === "lavanderia" ? null : pedidosFiltrados.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 0", color: "#444" }}>
+            <div style={{ textAlign: "center", padding: "60px 0", color: "#64748b" }}>
               <div style={{ marginBottom: 12, display:"flex", justifyContent:"center" }}><Shirt size={40} color="#444" /></div>
               <div style={{ fontSize: 14 }}>Sin pedidos aquí</div>
             </div>
@@ -396,22 +396,22 @@ export default function MCLaundry() {
                 const esUrgente = urgentes.some(u => u.id === c.id);
                 return (
                   <div key={c.id} onClick={() => { setPedidoActivo(c.id); setVista("detalle"); }}
-                    style={{ background: esUrgente ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.03)", border: `0.5px solid ${esUrgente ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: "16px 14px", cursor: "pointer" }}>
+                    style={{ background: esUrgente ? "rgba(239,68,68,0.06)" : "#ffffff", border: `1px solid ${esUrgente ? "rgba(239,68,68,0.35)" : "#e2e8f0"}`, borderRadius: 14, padding: "16px 14px", cursor: "pointer", boxShadow: esUrgente ? "none" : "0 1px 4px rgba(0,0,0,0.06)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                           <span style={{ fontSize: 18 }}>{ESTADO_ICON[c.estado]}</span>
                           <div style={{ fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nombre}</div>
                         </div>
-                        <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
-                          {c.lavanderia || <span style={{ color: "#e879f9" }}>⚡ Sin lavandería</span>}
+                        <div style={{ fontSize: 13, color: "#64748b", marginBottom: 4 }}>
+                          {c.lavanderia || <span style={{ color: "#e879f9", display:"flex", alignItems:"center", gap:4 }}><Zap size={13} color="#e879f9" />Sin lavandería</span>}
                         </div>
                         {c.direccionEntrega && (
-                          <div style={{ fontSize: 13, color: "#a78bfa", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={13} color="#a78bfa" style={{marginRight:4}} />{c.direccionEntrega}</div>
+                          <div style={{ fontSize: 13, color: "#0ea5e9", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={13} color="#0ea5e9" style={{marginRight:4}} />{c.direccionEntrega}</div>
                         )}
-                        <div style={{ display: "flex", gap: 12, fontSize: 14, color: "#666" }}>
+                        <div style={{ display: "flex", gap: 12, fontSize: 14, color: "#64748b" }}>
                           <span>{c.kg} kg</span>
-                          <span style={{ color: "#a78bfa", fontWeight: 700 }}>S/. {c.precio}</span>
+                          <span style={{ color: "#0ea5e9", fontWeight: 700 }}>S/. {c.precio}</span>
                           <span>{timeAgo(c.ingreso)}</span>
                         </div>
                       </div>
@@ -430,11 +430,14 @@ export default function MCLaundry() {
       {/* ══ DIRECTORIO ══ */}
       {!vista && tab === "directorio" && (
         <div style={{ padding: "12px 16px 16px" }}>
-          <input type="text" placeholder="🔍  Nombre, celular o dirección..."
-            value={busquedaDir} onChange={e => setBusquedaDir(e.target.value)}
-            style={{ ...inputStyle, marginBottom: 12 }} />
+          <div style={{ position: "relative", marginBottom: 12 }}>
+            <TextSearch size={18} color="#94a3b8" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+            <input type="text" placeholder="Nombre, celular o dirección..."
+              value={busquedaDir} onChange={e => setBusquedaDir(e.target.value)}
+              style={{ ...inputStyle, paddingLeft: 40 }} />
+          </div>
           {directorioFiltrado.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 0", color: "#444" }}>
+            <div style={{ textAlign: "center", padding: "60px 0", color: "#64748b" }}>
               <div style={{ marginBottom: 12, display:"flex", justifyContent:"center" }}><User size={40} color="#444" /></div>
               <div style={{ fontSize: 14 }}>{directorio.length === 0 ? "Sin clientes aún" : "Sin resultados"}</div>
             </div>
@@ -445,17 +448,17 @@ export default function MCLaundry() {
                 const total = pedidos.filter(p => p.clienteId === String(d.id) || p.nombre === d.nombre).length;
                 return (
                   <div key={d.id} onClick={() => { setClienteDirActivo(d.id); setVista("detalleCliente"); }}
-                    style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
+                    style={{ background: "rgba(14,165,233,0.05)", border: "0.5px solid rgba(14,165,233,0.2)", borderRadius: 14, padding: "13px 14px", cursor: "pointer" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                           <div style={{ fontSize: 15, fontWeight: 600 }}>{d.nombre}</div>
                           {activos > 0 && <span style={{ fontSize: 10, background: "rgba(16,185,129,0.2)", color: "#10b981", padding: "2px 7px", borderRadius: 6, fontWeight: 700 }}>{activos} activo{activos > 1 ? "s" : ""}</span>}
                         </div>
-                        {d.celular && <div style={{ fontSize: 12, color: "#a78bfa", marginBottom: 2 }}><Phone size={12} color="#a78bfa" style={{marginRight:4}} />{d.celular}</div>}
-                        {d.direccion && <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={12} color="#555" style={{marginRight:4}} />{d.direccion}</div>}
+                        {d.celular && <div style={{ fontSize: 12, color: "#0ea5e9", marginBottom: 2 }}><Phone size={12} color="#0ea5e9" style={{marginRight:4}} />{d.celular}</div>}
+                        {d.direccion && <div style={{ fontSize: 12, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={12} color="#555" style={{marginRight:4}} />{d.direccion}</div>}
                       </div>
-                      <div style={{ fontSize: 11, color: "#444", marginLeft: 8, flexShrink: 0 }}>{total} pedido{total !== 1 ? "s" : ""}</div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginLeft: 8, flexShrink: 0 }}>{total} pedido{total !== 1 ? "s" : ""}</div>
                     </div>
                   </div>
                 );
@@ -473,7 +476,7 @@ export default function MCLaundry() {
           <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
             {[{ key: "hoy", label: "Hoy" }, { key: "semana", label: "Esta semana" }, { key: "mes", label: "Este mes" }].map(p => (
               <button key={p.key} onClick={() => setPeriodoReporte(p.key)}
-                style={{ flex: 1, background: periodoReporte === p.key ? "#10b981" : "rgba(255,255,255,0.04)", border: `0.5px solid ${periodoReporte === p.key ? "#10b981" : "rgba(255,255,255,0.08)"}`, borderRadius: 10, padding: "8px 4px", cursor: "pointer", fontSize: 12, fontWeight: periodoReporte === p.key ? 700 : 400, color: periodoReporte === p.key ? "#fff" : "#777" }}>
+                style={{ flex: 1, background: periodoReporte === p.key ? "#0ea5e9" : "rgba(14,165,233,0.06)", border: `0.5px solid ${periodoReporte === p.key ? "#0ea5e9" : "rgba(0,0,0,0.1)"}`, borderRadius: 10, padding: "8px 4px", cursor: "pointer", fontSize: 12, fontWeight: periodoReporte === p.key ? 700 : 400, color: periodoReporte === p.key ? "#fff" : "#777" }}>
                 {p.label}
               </button>
             ))}
@@ -483,14 +486,14 @@ export default function MCLaundry() {
           <div style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.06))", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 16, padding: "20px 18px", marginBottom: 10 }}>
             <div style={{ fontSize: 10, color: "#10b981", letterSpacing: 1.5, marginBottom: 6 }}>TU GANANCIA</div>
             <div style={{ fontSize: 44, fontWeight: 900, color: "#10b981", letterSpacing: -2, lineHeight: 1 }}>S/. {reporte.ganancia.toFixed(2)}</div>
-            <div style={{ fontSize: 12, color: "#555", marginTop: 8 }}>{reporte.kg.toFixed(1)} kg lavados · {reporte.entregados} entregado{reporte.entregados !== 1 ? "s" : ""}</div>
+            <div style={{ fontSize: 12, color: "#64748b", marginTop: 8 }}>{reporte.kg.toFixed(1)} kg lavados · {reporte.entregados} entregado{reporte.entregados !== 1 ? "s" : ""}</div>
           </div>
 
           {/* COBRADO — secundario */}
-          <div style={{ background: "rgba(167,139,250,0.07)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "14px 16px", marginBottom: 10 }}>
-            <div style={{ fontSize: 10, color: "#a78bfa", letterSpacing: 1, marginBottom: 4 }}>COBRADO</div>
-            <div style={{ fontSize: 30, fontWeight: 800, color: "#a78bfa", letterSpacing: -1 }}>S/. {reporte.ingresos.toFixed(2)}</div>
-            <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{reporte.total} pedido{reporte.total !== 1 ? "s" : ""}</div>
+          <div style={{ background: "rgba(14,165,233,0.08)", border: "0.5px solid rgba(14,165,233,0.25)", borderRadius: 14, padding: "14px 16px", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, color: "#0ea5e9", letterSpacing: 1, marginBottom: 4 }}>COBRADO</div>
+            <div style={{ fontSize: 30, fontWeight: 800, color: "#0ea5e9", letterSpacing: -1 }}>S/. {reporte.ingresos.toFixed(2)}</div>
+            <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{reporte.total} pedido{reporte.total !== 1 ? "s" : ""}</div>
           </div>
 
           {/* POR COBRAR — arriba, visible siempre */}
@@ -505,7 +508,7 @@ export default function MCLaundry() {
                   style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderTop: i === 0 ? "0.5px solid rgba(239,68,68,0.15)" : "0.5px solid rgba(239,68,68,0.1)", cursor: "pointer" }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>{p.nombre}</div>
-                    <div style={{ fontSize: 11, color: "#666" }}>{p.estado}</div>
+                    <div style={{ fontSize: 11, color: "#64748b" }}>{p.estado}</div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#ef4444" }}>S/. {p.precio}</div>
@@ -517,8 +520,8 @@ export default function MCLaundry() {
           )}
 
           {/* POR ESTADO — barras más gruesas */}
-          <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden", marginBottom: 10 }}>
-            <div style={{ fontSize: 10, letterSpacing: 1, color: "#555", padding: "12px 14px 6px" }}>POR ESTADO</div>
+          <div style={{ background: "rgba(14,165,233,0.05)", border: "0.5px solid rgba(14,165,233,0.2)", borderRadius: 14, overflow: "hidden", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, letterSpacing: 1, color: "#64748b", padding: "12px 14px 6px" }}>POR ESTADO</div>
             {ESTADOS.map((e, i) => {
               const n = reporte.porEstado[e] || 0;
               const pct = reporte.total > 0 ? (n / reporte.total) * 100 : 0;
@@ -527,11 +530,11 @@ export default function MCLaundry() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span>{ESTADO_ICON[e]}</span>
-                      <span style={{ fontSize: 12, color: "#888" }}>{e}</span>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>{e}</span>
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 700, color: ESTADO_COLORS[e] }}>{n}</span>
                   </div>
-                  <div style={{ height: 7, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ height: 7, background: "rgba(14,165,233,0.07)", borderRadius: 4, overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${pct}%`, background: ESTADO_COLORS[e], borderRadius: 4 }} />
                   </div>
                 </div>
@@ -541,17 +544,17 @@ export default function MCLaundry() {
 
           {/* ÚLTIMOS PEDIDOS — nombre + precio + estado */}
           {pedidosReporte.length > 0 && (
-            <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden" }}>
-              <div style={{ fontSize: 10, letterSpacing: 1, color: "#555", padding: "12px 14px 6px" }}>ÚLTIMOS PEDIDOS</div>
+            <div style={{ background: "rgba(14,165,233,0.05)", border: "0.5px solid rgba(14,165,233,0.2)", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ fontSize: 10, letterSpacing: 1, color: "#64748b", padding: "12px 14px 6px" }}>ÚLTIMOS PEDIDOS</div>
               {pedidosReporte.slice(0, 8).map((p, i) => (
                 <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 14px", borderTop: "0.5px solid rgba(255,255,255,0.04)", cursor: "pointer" }}>
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 14px", borderTop: "0.5px solid rgba(14,165,233,0.15)", cursor: "pointer" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</div>
-                    <div style={{ fontSize: 10, color: "#555", marginTop: 1 }}>{formatDate(p.ingreso)} · {p.kg} kg</div>
+                    <div style={{ fontSize: 10, color: "#64748b", marginTop: 1 }}>{formatDate(p.ingreso)} · {p.kg} kg</div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#a78bfa" }}>S/. {p.precio}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0ea5e9" }}>S/. {p.precio}</div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: ESTADO_COLORS[p.estado] }}>{p.estado}</div>
                   </div>
                 </div>
@@ -582,30 +585,30 @@ export default function MCLaundry() {
                   }}
                   onBlur={() => setTimeout(() => setMostrarSugerencias(false), 150)}
                   onFocus={() => { if (form.nombre.trim().length >= 1 && sugerencias.length > 0) setMostrarSugerencias(true); }}
-                  style={{ ...inputStyle, borderColor: form.clienteId ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.1)", paddingRight: form.clienteId ? "40px" : "14px" }} />
+                  style={{ ...inputStyle, borderColor: form.clienteId ? "rgba(167,139,250,0.5)" : "rgba(0,0,0,0.12)", paddingRight: form.clienteId ? "40px" : "14px" }} />
                 {form.clienteId && (
-                  <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#888" }}
+                  <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#64748b" }}
                     onClick={() => { setForm(p => ({ ...p, clienteId: "", nombre: "" })); setSugerencias([]); setMostrarSugerencias(false); setTimeout(() => nombreInputRef.current?.focus(), 50); }}>✕</div>
                 )}
               </div>
 
               {mostrarSugerencias && sugerencias.length > 0 && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: "#131320", border: "0.5px solid rgba(167,139,250,0.35)", borderRadius: "0 0 12px 12px", overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,0.6)" }}>
-                  <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", padding: "8px 14px 4px", borderBottom: "0.5px solid rgba(255,255,255,0.05)" }}>CLIENTES REGISTRADOS</div>
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: "#ffffff", border: "0.5px solid rgba(14,165,233,0.25)", borderRadius: "0 0 12px 12px", overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,0.6)" }}>
+                  <div style={{ fontSize: 10, letterSpacing: 1, color: "#0ea5e9", padding: "8px 14px 4px", borderBottom: "0.5px solid rgba(14,165,233,0.15)" }}>CLIENTES REGISTRADOS</div>
                   {sugerencias.map((d, i) => {
                     const q = form.nombre.toLowerCase(), n = d.nombre, idx = n.toLowerCase().indexOf(q);
                     return (
                       <div key={d.id}
                         onMouseDown={() => { setForm(p => ({ ...p, nombre: d.nombre, clienteId: String(d.id) })); setSugerencias([]); setMostrarSugerencias(false); }}
-                        style={{ padding: "10px 14px", cursor: "pointer", borderBottom: i < sugerencias.length - 1 ? "0.5px solid rgba(255,255,255,0.04)" : "none", display: "flex", alignItems: "center", gap: 10 }}
+                        style={{ padding: "10px 14px", cursor: "pointer", borderBottom: i < sugerencias.length - 1 ? "0.5px solid rgba(14,165,233,0.15)" : "none", display: "flex", alignItems: "center", gap: 10 }}
                         onMouseEnter={e => e.currentTarget.style.background = "rgba(167,139,250,0.1)"}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><User size={14} color="#a78bfa" /></div>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(14,165,233,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><User size={14} color="#0ea5e9" /></div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: "#e8e4dc" }}>
-                            {idx === -1 ? n : <>{n.slice(0,idx)}<span style={{ color: "#a78bfa", background: "rgba(167,139,250,0.15)", borderRadius: 3, padding: "0 1px" }}>{n.slice(idx, idx+q.length)}</span>{n.slice(idx+q.length)}</>}
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
+                            {idx === -1 ? n : <>{n.slice(0,idx)}<span style={{ color: "#0ea5e9", background: "rgba(14,165,233,0.08)", borderRadius: 3, padding: "0 1px" }}>{n.slice(idx, idx+q.length)}</span>{n.slice(idx+q.length)}</>}
                           </div>
-                          <div style={{ fontSize: 11, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[d.celular, d.direccion].filter(Boolean).join(" · ") || "Sin datos adicionales"}</div>
+                          <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[d.celular, d.direccion].filter(Boolean).join(" · ") || "Sin datos adicionales"}</div>
                         </div>
                       </div>
                     );
@@ -624,11 +627,11 @@ export default function MCLaundry() {
                   ? `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(cl.direccion + " Pichanaki Peru")}&travelmode=motorcycle`
                   : null;
                 return (
-                  <div style={{ marginTop: 8, background: "rgba(167,139,250,0.08)", border: "0.5px solid rgba(167,139,250,0.25)", borderRadius: 10, padding: "10px 14px" }}>
-                    <div style={{ fontSize: 10, color: "#a78bfa", letterSpacing: 1, marginBottom: 8 }}>CLIENTE VINCULADO ✓</div>
-                    {cl.celular && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 4 }}><Phone size={12} color="#c4b5fd" style={{marginRight:4}} />{cl.celular}</div>}
-                    {cl.direccion && <div style={{ fontSize: 12, color: "#c4b5fd", marginBottom: 4 }}><MapPin size={12} color="#c4b5fd" style={{marginRight:4}} />{cl.direccion}</div>}
-                    {cl.notasEntrega && <div style={{ fontSize: 11, color: "#888", marginBottom: 8 }}><FileText size={12} color="#888" style={{marginRight:4}} />{cl.notasEntrega}</div>}
+                  <div style={{ marginTop: 8, background: "rgba(14,165,233,0.08)", border: "0.5px solid rgba(14,165,233,0.25)", borderRadius: 10, padding: "10px 14px" }}>
+                    <div style={{ fontSize: 10, color: "#0ea5e9", letterSpacing: 1, marginBottom: 8 }}>CLIENTE VINCULADO ✓</div>
+                    {cl.celular && <div style={{ fontSize: 12, color: "#38bdf8", marginBottom: 4 }}><Phone size={12} color="#38bdf8" style={{marginRight:4}} />{cl.celular}</div>}
+                    {cl.direccion && <div style={{ fontSize: 12, color: "#38bdf8", marginBottom: 4 }}><MapPin size={12} color="#38bdf8" style={{marginRight:4}} />{cl.direccion}</div>}
+                    {cl.notasEntrega && <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}><FileText size={12} color="#888" style={{marginRight:4}} />{cl.notasEntrega}</div>}
                     {mapsUrl && (
                       <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
                         style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#3b82f6", color: "#fff", fontSize: 15, fontWeight: 700, padding: "14px 18px", borderRadius: 10, textDecoration: "none", marginTop: 6 }}>
@@ -654,19 +657,19 @@ export default function MCLaundry() {
 
             <div style={{ background: "rgba(233,121,249,0.06)", border: "0.5px solid rgba(233,121,249,0.2)", borderRadius: 10, padding: "12px 14px" }}>
               <div style={{ fontSize: 13, color: "#e879f9", fontWeight: 600 }}>🚴 Lavandería se asigna después del recojo</div>
-              <div style={{ fontSize: 11, color: "#777", marginTop: 3 }}>Primero recoge, luego eliges según disponibilidad</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginTop: 3 }}>Primero recoge, luego eliges según disponibilidad</div>
             </div>
 
             {form.kg && parseFloat(form.kg) > 0 && (
               <div style={{ background: "rgba(16,185,129,0.08)", border: "0.5px solid rgba(16,185,129,0.2)", borderRadius: 10, padding: "12px 14px" }}>
                 <div style={{ fontSize: 11, color: "#10b981", marginBottom: 6, letterSpacing: 1 }}>RESUMEN</div>
                 <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{form.kg} kg × S/. 5.00 = S/. {(parseFloat(form.kg) * 5).toFixed(2)}</div>
-                <div style={{ fontSize: 12, color: "#555" }}>Costo ~S/. {(parseFloat(form.kg) * 3.5).toFixed(2)} · Ganancia <span style={{ color: "#10b981", fontWeight: 600 }}>S/. {(parseFloat(form.kg) * 1.5).toFixed(2)}</span></div>
+                <div style={{ fontSize: 12, color: "#64748b" }}>Costo ~S/. {(parseFloat(form.kg) * 3.5).toFixed(2)} · Ganancia <span style={{ color: "#10b981", fontWeight: 600 }}>S/. {(parseFloat(form.kg) * 1.5).toFixed(2)}</span></div>
               </div>
             )}
 
             <button onClick={agregarPedido} disabled={!form.nombre || !form.kg}
-              style={{ background: form.nombre && form.kg ? "#10b981" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 14, padding: "18px", color: form.nombre && form.kg ? "#fff" : "#444", fontSize: 16, fontWeight: 700, cursor: form.nombre && form.kg ? "pointer" : "default", boxShadow: form.nombre && form.kg ? "0 4px 24px rgba(16,185,129,0.4)" : "none", marginTop: 4 }}>
+              style={{ background: form.nombre && form.kg ? "#0ea5e9" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 14, padding: "18px", color: form.nombre && form.kg ? "#fff" : "#444", fontSize: 16, fontWeight: 700, cursor: form.nombre && form.kg ? "pointer" : "default", boxShadow: form.nombre && form.kg ? "0 4px 24px rgba(14,165,233,0.4)" : "none", marginTop: 4 }}>
               🛵 Iniciar recojo
             </button>
           </div>
@@ -678,12 +681,12 @@ export default function MCLaundry() {
         <div style={{ padding: "12px 16px 80px" }}>
 
           {/* Info principal */}
-          <div style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
+          <div style={{ background: "rgba(14,165,233,0.05)", border: "0.5px solid rgba(14,165,233,0.2)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
             {[
               { label: "Estado", val: <span style={{ color: ESTADO_COLORS[pedidoDetalle.estado], fontWeight: 700 }}>{ESTADO_ICON[pedidoDetalle.estado]} {pedidoDetalle.estado}</span> },
               { label: "Lavandería", val: pedidoDetalle.lavanderia || <span style={{ color: "#e879f9" }}>Sin asignar</span> },
               { label: "Kilos", val: `${pedidoDetalle.kg} kg` },
-              { label: "Cobrado", val: <span style={{ color: "#a78bfa", fontWeight: 700 }}>S/. {pedidoDetalle.precio}</span> },
+              { label: "Cobrado", val: <span style={{ color: "#0ea5e9", fontWeight: 700 }}>S/. {pedidoDetalle.precio}</span> },
               { label: "Costo lav.", val: (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ color: "#ef4444" }}>S/. {(pedidoDetalle.costoLavanderia ?? (pedidoDetalle.kg * 3.5)).toFixed(2)}</span>
@@ -696,7 +699,7 @@ export default function MCLaundry() {
                         setCostoLavTemp("");
                       }
                     }}
-                    style={{ width: 70, background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "2px 6px", color: "#fff", fontSize: 11 }} />
+                    style={{ width: 70, background: "rgba(14,165,233,0.07)", border: "0.5px solid rgba(14,165,233,0.25)", borderRadius: 6, padding: "2px 6px", color: "#fff", fontSize: 11 }} />
                 </div>
               )},
               { label: "Ganancia real", val: <span style={{ color: "#10b981", fontWeight: 700 }}>S/. {(pedidoDetalle.precio - (pedidoDetalle.costoLavanderia ?? (pedidoDetalle.kg * 3.5))).toFixed(2)}</span> },
@@ -704,20 +707,20 @@ export default function MCLaundry() {
               ...(pedidoDetalle.fechaFin ? [{ label: "Fin", val: `${formatDate(pedidoDetalle.fechaFin)} ${formatTime(pedidoDetalle.fechaFin)}` }] : []),
               ...(pedidoDetalle.notas ? [{ label: "Notas", val: pedidoDetalle.notas }] : []),
             ].map((r, i, arr) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < arr.length - 1 ? "0.5px solid rgba(255,255,255,0.04)" : "none" }}>
-                <span style={{ fontSize: 12, color: "#555" }}>{r.label}</span>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < arr.length - 1 ? "0.5px solid rgba(14,165,233,0.15)" : "none" }}>
+                <span style={{ fontSize: 12, color: "#64748b" }}>{r.label}</span>
                 <span style={{ fontSize: 13, textAlign: "right", maxWidth: "60%" }}>{r.val}</span>
               </div>
             ))}
           </div>
 
           {/* Pago — bloque full-width fuera de tabla */}
-          <div style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
-            <div style={{ fontSize: 10, letterSpacing: 1, color: "#555", marginBottom: 10 }}>PAGO</div>
+          <div style={{ background: "rgba(14,165,233,0.05)", border: "0.5px solid rgba(14,165,233,0.2)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, letterSpacing: 1, color: "#64748b", marginBottom: 10 }}>PAGO</div>
             <div style={{ display: "flex", gap: 8 }}>
               {["Efectivo","Yape","No pagó"].map(op => {
                 const activo = (pedidoDetalle.pago || "No pagó") === op;
-                const color = op === "Efectivo" ? "#10b981" : op === "Yape" ? "#a78bfa" : "#ef4444";
+                const color = op === "Efectivo" ? "#10b981" : op === "Yape" ? "#7c3aed" : "#ef4444";
                 return (
                   <button key={op}
                     onClick={() => {
@@ -735,7 +738,7 @@ export default function MCLaundry() {
                       });
                     }}
                     style={{ flex: 1, minHeight: 52, fontSize: 15, fontWeight: 700, borderRadius: 12, border: `1.5px solid ${activo ? color : "rgba(255,255,255,0.1)"}`, background: activo ? `${color}22` : "transparent", color: activo ? color : "#555", cursor: "pointer" }}>
-                    {op === "Efectivo" ? "💵 Efectivo" : op === "Yape" ? "📲 Yape" : "❌ No pagó"}
+                    {op === "Efectivo" ? <><Banknote size={18} style={{display:"inline",verticalAlign:"middle",marginRight:6}} />Efectivo</> : op === "Yape" ? <><Smartphone size={18} style={{display:"inline",verticalAlign:"middle",marginRight:6}} />Yape</> : <><TriangleAlert size={18} style={{display:"inline",verticalAlign:"middle",marginRight:6}} />No pagó</>}
                   </button>
                 );
               })}
@@ -744,32 +747,32 @@ export default function MCLaundry() {
 
           {/* Datos de entrega */}
           {(pedidoDetalle.celularEntrega || pedidoDetalle.direccionEntrega || pedidoDetalle.notasEntregaCliente) && (
-            <div style={{ background: "rgba(167,139,250,0.06)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
-              <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", marginBottom: 10 }}>DATOS DE ENTREGA</div>
+            <div style={{ background: "rgba(14,165,233,0.08)", border: "0.5px solid rgba(14,165,233,0.25)", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
+              <div style={{ fontSize: 10, letterSpacing: 1, color: "#0ea5e9", marginBottom: 10 }}>DATOS DE ENTREGA</div>
               {pedidoDetalle.celularEntrega && (() => {
                 const num = pedidoDetalle.celularEntrega.replace(/\D/g, "");
                 const wa = `https://wa.me/51${num.startsWith("51") ? num.slice(2) : num}`;
                 return (
                   <div style={{ marginBottom: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                      <Phone size={13} color="#a78bfa" />
-                      <span style={{ fontSize: 15, color: "#a78bfa", fontWeight: 600 }}>{pedidoDetalle.celularEntrega}</span>
+                      <Phone size={13} color="#0ea5e9" />
+                      <span style={{ fontSize: 15, color: "#0ea5e9", fontWeight: 600 }}>{pedidoDetalle.celularEntrega}</span>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <a href={wa} target="_blank" rel="noopener noreferrer"
                         style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "#25d366", color: "#fff", fontSize: 16, fontWeight: 700, padding: "16px 0", borderRadius: 12, textDecoration: "none" }}>
-                        💬 WhatsApp
+                        <MessageCircleMore size={18} style={{flexShrink:0}} />  WhatsApp
                       </a>
                       <a href={`tel:+51${num.startsWith("51") ? num.slice(2) : num}`}
-                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(255,255,255,0.07)", color: "#ccc", fontSize: 16, fontWeight: 600, padding: "16px 0", borderRadius: 12, textDecoration: "none" }}>
-                        📞 Llamar
+                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(14,165,233,0.08)", color: "#ccc", fontSize: 16, fontWeight: 600, padding: "16px 0", borderRadius: 12, textDecoration: "none" }}>
+                        <PhoneOutgoing size={18} style={{flexShrink:0}} />  Llamar
                       </a>
                     </div>
                   </div>
                 );
               })()}
               {pedidoDetalle.direccionEntrega && <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
-                <MapPin size={14} color="#a78bfa" style={{flexShrink:0}} />
+                <MapPin size={14} color="#0ea5e9" style={{flexShrink:0}} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13 }}>{pedidoDetalle.direccionEntrega}</div>
                   {(() => {
@@ -802,18 +805,18 @@ export default function MCLaundry() {
           {pedidoDetalle.estado === "En recojo" && (
             <button onClick={() => setModal({ titulo: "¿Confirmar recojo?", msg: `Marcar la ropa de ${pedidoDetalle.nombre} como recogida.`, onConfirm: () => cambiarEstado(pedidoDetalle.id) })}
               style={{ width: "100%", background: "#e879f9", border: "none", borderRadius: 14, padding: "22px", cursor: "pointer", color: "#fff", fontSize: 17, fontWeight: 700, marginBottom: 12, boxShadow: "0 4px 20px rgba(232,121,249,0.4)" }}>
-              🧺 Confirmar recojo
+              <ShoppingBasket size={18} style={{display:"inline",verticalAlign:"middle",marginRight:8}} />Confirmar recojo
             </button>
           )}
 
           {/* Paso 2→3: Recogido → elegir lavandería + tiempo obligatorio */}
           {pedidoDetalle.estado === "Recogido" && (
             <div style={{ background: "rgba(233,121,249,0.08)", border: "1px solid rgba(233,121,249,0.35)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, color: "#e879f9", fontWeight: 700, marginBottom: 10 }}>🧺 ¿A qué lavandería y cuánto tiempo?</div>
+              <div style={{ fontSize: 13, color: "#e879f9", fontWeight: 700, marginBottom: 10 }}><WashingMachine size={15} style={{display:"inline",verticalAlign:"middle",marginRight:6}} />¿A qué lavandería y cuánto tiempo?</div>
               <label style={labelStyle}>LAVANDERÍA</label>
               <select value={lavanderiaTemp} onChange={e => setLavanderiaTemp(e.target.value)}
                 style={{ ...inputStyle, marginBottom: 10, borderColor: "rgba(233,121,249,0.3)", background: "rgba(233,121,249,0.06)" }}>
-                {lavanderias.map(l => <option key={l} value={l} style={{ background: "#1a1a2e" }}>{l}</option>)}
+                {lavanderias.map(l => <option key={l} value={l} style={{ background: "#ffffff" }}>{l}</option>)}
               </select>
               <label style={labelStyle}>TIEMPO EN LAVANDERÍA (horas)</label>
               <input type="number" placeholder="Ej: 1.5 = 1h 30m" step="0.25" min="0.25"
@@ -851,7 +854,7 @@ export default function MCLaundry() {
                   });
                 }}
                 style={{ width: "100%", background: minutosTemp && parseFloat(minutosTemp) > 0 ? "#3b82f6" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 10, padding: "18px", cursor: minutosTemp && parseFloat(minutosTemp) > 0 ? "pointer" : "default", color: minutosTemp && parseFloat(minutosTemp) > 0 ? "#fff" : "#444", fontSize: 16, fontWeight: 700, boxShadow: minutosTemp && parseFloat(minutosTemp) > 0 ? "0 4px 16px rgba(59,130,246,0.35)" : "none" }}>
-                🧼 Dejar en {lavanderiaTemp}
+                <WashingMachine size={18} style={{display:"inline",verticalAlign:"middle",marginRight:8}} />Dejar en {lavanderiaTemp}
               </button>
             </div>
           )}
@@ -862,13 +865,13 @@ export default function MCLaundry() {
             const vencido = restMs <= 0;
             return (
               <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
-                <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, marginBottom: 6 }}>TIEMPO RESTANTE</div>
+                <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, marginBottom: 6 }}>TIEMPO RESTANTE</div>
                 <div style={{ fontSize: 36, fontWeight: 800, color: vencido ? "#ef4444" : "#3b82f6", marginBottom: 4, letterSpacing: -1 }}>
                   {vencido
                     ? <><AlertCircle size={28} color="#ef4444" style={{display:"inline",verticalAlign:"middle",marginRight:6}} />Vencido hace {duracion(restMs)}</>
                     : <><Timer size={28} color="#3b82f6" style={{display:"inline",verticalAlign:"middle",marginRight:6}} />{duracion(restMs)} {Math.floor(Math.abs(restMs)/60000) <= 1 ? "restante" : "restantes"}</>}
                 </div>
-                <div style={{ fontSize: 12, color: "#555", marginBottom: 14 }}>
+                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>
                   {vencido ? "Ve a recoger la ropa cuanto antes" : `Listo aprox. a las ${formatTime(new Date(fin))}`}
                 </div>
                 <button onClick={() => setModal({ titulo: "¿Recogiste la ropa?", msg: `La ropa de ${pedidoDetalle.nombre} pasará a "Listo para entregar".`, onConfirm: () => cambiarEstado(pedidoDetalle.id) })}
@@ -890,18 +893,18 @@ export default function MCLaundry() {
               }
             }}
               style={{ width: "100%", background: "#10b981", border: "none", borderRadius: 14, padding: "22px", cursor: "pointer", color: "#fff", fontSize: 17, fontWeight: 700, marginBottom: 12, boxShadow: "0 4px 20px rgba(16,185,129,0.4)" }}>
-              📦 Confirmar entrega al cliente
+              <PackageCheck size={18} style={{display:"inline",verticalAlign:"middle",marginRight:8}} />Confirmar entrega al cliente
             </button>
           )}
 
           {/* Paso final: Entregado — duración total */}
           {pedidoDetalle.estado === "Entregado" && pedidoDetalle.fechaFin && (
             <div style={{ background: "rgba(107,114,128,0.08)", border: "0.5px solid rgba(107,114,128,0.2)", borderRadius: 14, padding: "16px", marginBottom: 12, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, marginBottom: 6 }}>DURACIÓN TOTAL DEL SERVICIO</div>
-              <div style={{ fontSize: 36, fontWeight: 800, color: "#a78bfa", letterSpacing: -1 }}>
+              <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, marginBottom: 6 }}>DURACIÓN TOTAL DEL SERVICIO</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: "#0ea5e9", letterSpacing: -1 }}>
                 {duracion(new Date(pedidoDetalle.fechaFin) - new Date(pedidoDetalle.ingreso))}
               </div>
-              <div style={{ fontSize: 11, color: "#555", marginTop: 6 }}>
+              <div style={{ fontSize: 11, color: "#64748b", marginTop: 6 }}>
                 {formatDate(pedidoDetalle.ingreso)} {formatTime(pedidoDetalle.ingreso)} → {formatTime(pedidoDetalle.fechaFin)}
               </div>
             </div>
@@ -910,14 +913,14 @@ export default function MCLaundry() {
           {/* Historial */}
           {pedidoDetalle.historial?.length > 0 && (
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 8 }}>HISTORIAL</div>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: "#64748b", marginBottom: 8 }}>HISTORIAL</div>
               {pedidoDetalle.historial.map((h, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", paddingBottom: 10, marginBottom: 10, borderBottom: i < pedidoDetalle.historial.length - 1 ? "0.5px solid rgba(255,255,255,0.04)" : "none" }}>
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", paddingBottom: 10, marginBottom: 10, borderBottom: i < pedidoDetalle.historial.length - 1 ? "0.5px solid rgba(14,165,233,0.15)" : "none" }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: ESTADO_COLORS[h.estado] || "#666", marginTop: 4, flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, color: "#e8e4dc" }}>{ESTADO_ICON[h.estado]} {h.estado}</div>
+                    <div style={{ fontSize: 13, color: "#0f172a" }}>{ESTADO_ICON[h.estado]} {h.estado}</div>
                     {h.lavanderia && <div style={{ fontSize: 11, color: "#3b82f6", marginTop: 1 }}>→ {h.lavanderia}</div>}
-                    <div style={{ fontSize: 11, color: "#555" }}>{formatDate(h.fecha)} {formatTime(h.fecha)}</div>
+                    <div style={{ fontSize: 11, color: "#64748b" }}>{formatDate(h.fecha)} {formatTime(h.fecha)}</div>
                   </div>
                 </div>
               ))}
@@ -959,20 +962,20 @@ export default function MCLaundry() {
                   <div style={{ fontSize: 13, fontWeight: 600, color: clienteDir.coordenadas ? "#10b981" : "#3b82f6" }}>
                     {gpsLoading ? "Obteniendo ubicación..." : clienteDir.coordenadas ? "Ubicación capturada ✓" : "Usar mi ubicación actual (GPS)"}
                   </div>
-                  <div style={{ fontSize: 11, color: "#555", marginTop: 1 }}>
+                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>
                     {clienteDir.coordenadas ? `${clienteDir.coordenadas.lat.toFixed(6)}, ${clienteDir.coordenadas.lng.toFixed(6)}` : "Toca cuando estés en casa del cliente"}
                   </div>
                 </div>
                 {clienteDir.coordenadas && (
                   <div style={{ marginLeft: "auto" }}
                     onClick={e => { e.stopPropagation(); setClienteDir(p => ({ ...p, coordenadas: null })); }}>
-                    <span style={{ fontSize: 12, color: "#555" }}>✕</span>
+                    <span style={{ fontSize: 12, color: "#64748b" }}>✕</span>
                   </div>
                 )}
               </button>
 
               {/* Campo manual lat, lng */}
-              <div style={{ fontSize: 11, color: "#555", textAlign: "center", marginBottom: 8 }}>— o ingresa coordenadas manualmente —</div>
+              <div style={{ fontSize: 11, color: "#64748b", textAlign: "center", marginBottom: 8 }}>— o ingresa coordenadas manualmente —</div>
               <input
                 type="text"
                 placeholder="Ej: -10.92345, -74.98765"
@@ -986,7 +989,7 @@ export default function MCLaundry() {
                     setClienteDir(p => ({ ...p, coordenadas: null }));
                   }
                 }}
-                style={{ ...inputStyle, fontSize: 13, borderColor: clienteDir.coordenadas ? "rgba(16,185,129,0.4)" : "rgba(255,255,255,0.1)" }}
+                style={{ ...inputStyle, fontSize: 13, borderColor: clienteDir.coordenadas ? "rgba(16,185,129,0.4)" : "rgba(0,0,0,0.12)" }}
               />
               {clienteDir.coordenadas && (
                 <a href={`https://maps.google.com/?q=${clienteDir.coordenadas.lat},${clienteDir.coordenadas.lng}`}
@@ -1005,7 +1008,7 @@ export default function MCLaundry() {
                 rows={4} style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5 }} />
             </div>
             <button onClick={guardarClienteDir} disabled={!clienteDir.nombre}
-              style={{ background: clienteDir.nombre ? "#10b981" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 14, padding: "18px", color: clienteDir.nombre ? "#fff" : "#444", fontSize: 16, fontWeight: 700, cursor: clienteDir.nombre ? "pointer" : "default", boxShadow: clienteDir.nombre ? "0 4px 24px rgba(16,185,129,0.4)" : "none", marginTop: 4 }}>
+              style={{ background: clienteDir.nombre ? "#0ea5e9" : "rgba(255,255,255,0.05)", border: "none", borderRadius: 14, padding: "18px", color: clienteDir.nombre ? "#fff" : "#444", fontSize: 16, fontWeight: 700, cursor: clienteDir.nombre ? "pointer" : "default", boxShadow: clienteDir.nombre ? "0 4px 24px rgba(14,165,233,0.4)" : "none", marginTop: 4 }}>
               {clienteDirActivo ? "Guardar cambios" : "Agregar cliente"}
             </button>
           </div>
@@ -1021,40 +1024,40 @@ export default function MCLaundry() {
           <div style={{ padding: "12px 16px 80px" }}>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
               <button onClick={() => abrirEditarCliente(clienteDirDetalle)}
-                style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", color: "#888", fontSize: 13 }}>Editar</button>
+                style={{ background: "rgba(14,165,233,0.07)", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", color: "#64748b", fontSize: 13 }}>Editar</button>
             </div>
-            <div style={{ background: "rgba(167,139,250,0.06)", border: "0.5px solid rgba(167,139,250,0.2)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
-              <div style={{ fontSize: 10, letterSpacing: 1, color: "#a78bfa", marginBottom: 12 }}>DATOS DE CONTACTO</div>
+            <div style={{ background: "rgba(14,165,233,0.08)", border: "0.5px solid rgba(14,165,233,0.25)", borderRadius: 14, padding: "14px", marginBottom: 12 }}>
+              <div style={{ fontSize: 10, letterSpacing: 1, color: "#0ea5e9", marginBottom: 12 }}>DATOS DE CONTACTO</div>
               {clienteDirDetalle.celular ? (() => {
                 const num = clienteDirDetalle.celular.replace(/\D/g, "");
                 const wa = `https://wa.me/51${num.startsWith("51") ? num.slice(2) : num}`;
                 return (
                   <div style={{ marginBottom: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}><Phone size={18} color="#a78bfa" /></div>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(14,165,233,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}><Phone size={18} color="#0ea5e9" /></div>
                       <div>
-                        <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>CELULAR</div>
-                        <div style={{ fontSize: 16, color: "#a78bfa", fontWeight: 700 }}>{clienteDirDetalle.celular}</div>
+                        <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>CELULAR</div>
+                        <div style={{ fontSize: 16, color: "#0ea5e9", fontWeight: 700 }}>{clienteDirDetalle.celular}</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <a href={wa} target="_blank" rel="noopener noreferrer"
                         style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "#25d366", color: "#fff", fontSize: 16, fontWeight: 700, padding: "16px 0", borderRadius: 12, textDecoration: "none" }}>
-                        💬 WhatsApp
+                        <MessageCircleMore size={18} style={{flexShrink:0}} />  WhatsApp
                       </a>
                       <a href={`tel:+51${num.startsWith("51") ? num.slice(2) : num}`}
-                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(255,255,255,0.07)", color: "#ccc", fontSize: 16, fontWeight: 600, padding: "16px 0", borderRadius: 12, textDecoration: "none" }}>
-                        📞 Llamar
+                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(14,165,233,0.08)", color: "#ccc", fontSize: 16, fontWeight: 600, padding: "16px 0", borderRadius: 12, textDecoration: "none" }}>
+                        <PhoneOutgoing size={18} style={{flexShrink:0}} />  Llamar
                       </a>
                     </div>
                   </div>
                 );
-              })() : <div style={{ fontSize: 12, color: "#444", marginBottom: 10 }}>Sin celular</div>}
+              })() : <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>Sin celular</div>}
               {clienteDirDetalle.direccion && (
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><MapPin size={18} color="#a78bfa" /></div>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(14,165,233,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><MapPin size={18} color="#0ea5e9" /></div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>DIRECCIÓN</div>
+                    <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>DIRECCIÓN</div>
                     <div style={{ fontSize: 13 }}>{clienteDirDetalle.direccion}</div>
                     {(clienteDirDetalle.coordenadas || clienteDirDetalle.mapsLink) && (
                       <a href={
@@ -1071,20 +1074,20 @@ export default function MCLaundry() {
               )}
               {clienteDirDetalle.notasEntrega && (
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><FileText size={18} color="#888" /></div>
-                  <div><div style={{ fontSize: 10, color: "#555", marginBottom: 2 }}>INSTRUCCIONES</div><div style={{ fontSize: 13, lineHeight: 1.5 }}>{clienteDirDetalle.notasEntrega}</div></div>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(14,165,233,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><FileText size={18} color="#888" /></div>
+                  <div><div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>INSTRUCCIONES</div><div style={{ fontSize: 13, lineHeight: 1.5 }}>{clienteDirDetalle.notasEntrega}</div></div>
                 </div>
               )}
             </div>
             {activos.length > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 8 }}>ACTIVOS ({activos.length})</div>
+                <div style={{ fontSize: 11, letterSpacing: 1, color: "#64748b", marginBottom: 8 }}>ACTIVOS ({activos.length})</div>
                 {activos.map(p => (
                   <div key={p.id} onClick={() => { setPedidoActivo(p.id); setVista("detalle"); }}
-                    style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "11px 13px", marginBottom: 6, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    style={{ background: "rgba(14,165,233,0.05)", border: "0.5px solid rgba(14,165,233,0.2)", borderRadius: 10, padding: "11px 13px", marginBottom: 6, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600 }}>{ESTADO_ICON[p.estado]} {p.kg} kg · S/. {p.precio}</div>
-                      <div style={{ fontSize: 11, color: "#555" }}>{p.lavanderia || "Sin lavandería"} · {formatDate(p.ingreso)}</div>
+                      <div style={{ fontSize: 11, color: "#64748b" }}>{p.lavanderia || "Sin lavandería"} · {formatDate(p.ingreso)}</div>
                     </div>
                     <div style={{ fontSize: 10, color: ESTADO_COLORS[p.estado], background: `${ESTADO_COLORS[p.estado]}18`, padding: "3px 8px", borderRadius: 6 }}>{p.estado}</div>
                   </div>
@@ -1093,11 +1096,11 @@ export default function MCLaundry() {
             )}
             {entregados.length > 0 && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 8 }}>HISTORIAL ({entregados.length})</div>
+                <div style={{ fontSize: 11, letterSpacing: 1, color: "#64748b", marginBottom: 8 }}>HISTORIAL ({entregados.length})</div>
                 {entregados.slice(0, 5).map(p => (
-                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "0.5px solid rgba(255,255,255,0.04)" }}>
-                    <div style={{ fontSize: 12, color: "#666" }}>{p.kg} kg · {formatDate(p.ingreso)}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#a78bfa" }}>S/. {p.precio}</div>
+                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "0.5px solid rgba(14,165,233,0.15)" }}>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>{p.kg} kg · {formatDate(p.ingreso)}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0ea5e9" }}>S/. {p.precio}</div>
                   </div>
                 ))}
               </div>
@@ -1145,8 +1148,8 @@ export default function MCLaundry() {
                       : <><Timer size={12} style={{display:"inline",verticalAlign:"middle",marginRight:3}} />{duracion(c.restMs)}</>}
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: "#555", marginBottom: 5 }}>{c.lavanderia} · {c.kg} kg</div>
-                <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ fontSize: 11, color: "#64748b", marginBottom: 5 }}>{c.lavanderia} · {c.kg} kg</div>
+                <div style={{ height: 6, background: "rgba(14,165,233,0.07)", borderRadius: 4, overflow: "hidden" }}>
                   <div style={{
                     height: "100%",
                     width: `${c.pct}%`,
@@ -1155,7 +1158,7 @@ export default function MCLaundry() {
                     transition: "width 1s ease"
                   }} />
                 </div>
-                <div style={{ fontSize: 10, color: "#444", marginTop: 3, textAlign: "right" }}>{Math.round(c.pct)}%</div>
+                <div style={{ fontSize: 10, color: "#64748b", marginTop: 3, textAlign: "right" }}>{Math.round(c.pct)}%</div>
               </div>
             ))}
           </div>
@@ -1186,9 +1189,9 @@ export default function MCLaundry() {
           <div style={{ padding: "12px 16px 100px" }}>
             {/* Lista de lavanderías */}
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 10 }}>MIS LAVANDERÍAS ({lavanderias.length})</div>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: "#64748b", marginBottom: 10 }}>MIS LAVANDERÍAS ({lavanderias.length})</div>
               {lavanderias.map((lav, idx) => (
-                <div key={idx} style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div key={idx} style={{ background: "rgba(14,165,233,0.05)", border: "0.5px solid rgba(14,165,233,0.2)", borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   {editandoLav?.idx === idx ? (
                     <input
                       value={editandoLav.nombre}
@@ -1207,11 +1210,11 @@ export default function MCLaundry() {
                           setLavanderias(prev => prev.map((l, i) => i === idx ? editandoLav.nombre.trim() : l));
                           setEditandoLav(null);
                         }} style={{ background: "#10b981", border: "none", borderRadius: 8, padding: "6px 12px", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>✓</button>
-                        <button onClick={() => setEditandoLav(null)} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#888", fontSize: 12, cursor: "pointer" }}>✕</button>
+                        <button onClick={() => setEditandoLav(null)} style={{ background: "rgba(14,165,233,0.07)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#64748b", fontSize: 12, cursor: "pointer" }}>✕</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => setEditandoLav({ idx, nombre: lav })} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#888", fontSize: 13, cursor: "pointer" }}><Pencil size={14} /></button>
+                        <button onClick={() => setEditandoLav({ idx, nombre: lav })} style={{ background: "rgba(14,165,233,0.07)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#64748b", fontSize: 13, cursor: "pointer" }}><Pencil size={14} /></button>
                       </>
                     )}
                   </div>
@@ -1242,9 +1245,9 @@ export default function MCLaundry() {
 
             {/* Ranking semanal */}
             <div>
-              <div style={{ fontSize: 11, letterSpacing: 1, color: "#555", marginBottom: 10 }}>RANKING ESTA SEMANA — MÁS RÁPIDAS</div>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: "#64748b", marginBottom: 10 }}>RANKING ESTA SEMANA — MÁS RÁPIDAS</div>
               {ranking.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "30px 0", color: "#444", fontSize: 13 }}>
+                <div style={{ textAlign: "center", padding: "30px 0", color: "#64748b", fontSize: 13 }}>
                   <div style={{ marginBottom: 8, display:"flex", justifyContent:"center" }}><WashingMachine size={32} color="#444" /></div>
                   Sin datos esta semana aún
                 </div>
@@ -1255,11 +1258,11 @@ export default function MCLaundry() {
                       <span style={{ fontSize: 16 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i+1}.`}</span>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{r.lav}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: "#555" }}>{r.count} pedido{r.count !== 1 ? "s" : ""} esta semana</div>
+                    <div style={{ fontSize: 11, color: "#64748b" }}>{r.count} pedido{r.count !== 1 ? "s" : ""} esta semana</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: i === 0 ? "#10b981" : "#a78bfa" }}>{duracion(r.promedio * 60000)}</div>
-                    <div style={{ fontSize: 10, color: "#555" }}>promedio</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: i === 0 ? "#0ea5e9" : "#06b6d4" }}>{duracion(r.promedio * 60000)}</div>
+                    <div style={{ fontSize: 10, color: "#64748b" }}>promedio</div>
                   </div>
                 </div>
               ))}
@@ -1271,7 +1274,7 @@ export default function MCLaundry() {
       {/* ══ GESTIÓN LAVANDERÍAS (vista) ══ */}
       {vista === "gestionLavanderias" && (
         <div style={{ padding: "12px 16px 80px" }}>
-          <div style={{ fontSize: 14, color: "#555", textAlign: "center", paddingTop: 40 }}>
+          <div style={{ fontSize: 14, color: "#64748b", textAlign: "center", paddingTop: 40 }}>
             Usa el tab Lavands. para gestionar tus lavanderías
           </div>
         </div>
@@ -1282,13 +1285,13 @@ export default function MCLaundry() {
       {modal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
           onClick={() => setModal(null)}>
-          <div style={{ background: "#1a1a2e", border: "0.5px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 360 }}
+          <div style={{ background: "#ffffff", border: "0.5px solid rgba(14,165,233,0.25)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 360 }}
             onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{modal.titulo}</div>
-            <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>{modal.msg}</div>
+            <div style={{ fontSize: 13, color: "#64748b", marginBottom: 20 }}>{modal.msg}</div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setModal(null)}
-                style={{ flex: 1, padding: 14, borderRadius: 12, border: "0.5px solid rgba(255,255,255,0.1)", background: "transparent", color: "#888", cursor: "pointer", fontWeight: 600 }}>
+                style={{ flex: 1, padding: 14, borderRadius: 12, border: "0.5px solid rgba(14,165,233,0.25)", background: "transparent", color: "#64748b", cursor: "pointer", fontWeight: 600 }}>
                 {modal.onConfirm ? "Cancelar" : "Entendido"}
               </button>
               {modal.onConfirm && (
@@ -1309,14 +1312,14 @@ export default function MCLaundry() {
             else if (tab === "lavanderias") setVista("gestionLavanderias");
             else setVista("nuevo");
           }}
-          style={{ position: "fixed", bottom: 88, left: "50%", transform: "translateX(-50%)", background: "#10b981", border: "none", borderRadius: 20, padding: "0 32px", height: 56, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 16, fontWeight: 700, color: "#fff", boxShadow: "0 6px 32px rgba(16,185,129,0.6)", zIndex: 50, whiteSpace: "nowrap" }}>
+          style={{ position: "fixed", bottom: 88, left: "50%", transform: "translateX(-50%)", background: "#0ea5e9", border: "none", borderRadius: 20, padding: "0 32px", height: 56, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 16, fontWeight: 700, color: "#fff", boxShadow: "0 6px 32px rgba(14,165,233,0.5)", zIndex: 50, whiteSpace: "nowrap" }}>
           <span style={{ fontSize: 22 }}>+</span>
           {tab === "directorio" ? "Nuevo cliente" : tab === "lavanderias" ? "Gestionar" : "Nuevo pedido"}
         </button>
       )}
 
       {/* ══ BOTTOM NAV ══ */}
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "rgba(10,10,15,0.97)", borderTop: "0.5px solid rgba(255,255,255,0.08)", display: "flex", zIndex: 40 }}>
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.97)", borderTop: "0.5px solid rgba(14,165,233,0.2)", boxShadow: "0 -4px 20px rgba(0,0,0,0.08)", display: "flex", zIndex: 40 }}>
         {[
           { key: "dashboard",   icon: <ClipboardList size={20} />, label: "Pedidos",   badge: urgentes.length },
           { key: "directorio",  icon: <Users size={20} />,          label: "Clientes",  badge: 0 },
@@ -1326,7 +1329,7 @@ export default function MCLaundry() {
           const activo = !vista && tab === t.key;
           return (
             <button key={t.key} onClick={() => { setVista(null); setTab(t.key); }}
-              style={{ flex: 1, background: "none", border: "none", padding: "12px 4px 16px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: activo ? "#10b981" : "#444", position: "relative" }}>
+              style={{ flex: 1, background: "none", border: "none", padding: "12px 4px 16px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: activo ? "#0ea5e9" : "#94a3b8", position: "relative" }}>
               <span style={{ fontSize: 24 }}>{t.icon}</span>
               <span style={{ fontSize: 11, fontWeight: activo ? 700 : 400 }}>{t.label}</span>
               {t.badge > 0 && (
